@@ -77,6 +77,8 @@
   # You can disable this if you're only using the Wayland session.
   services.xserver.enable = false;
 
+  services.flatpak.enable = true;
+
   # Enable the KDE Plasma Desktop Environment.
   services.displayManager.sddm.enable = true;
   services.desktopManager.plasma6.enable = true;
@@ -146,13 +148,6 @@
     git
     python3
     vim
-    vivaldi
-    (vivaldi.overrideAttrs (oldAttrs: {
-      dontWrapQtApps = false;
-      dontPatchELF = true;
-      nativeBuildInputs = oldAttrs.nativeBuildInputs ++ [ pkgs.kdePackages.wrapQtAppsHook ];
-    }))
-    #vivaldi-ffmpeg-codecs
     wireguard-tools
     wget
     zellij
