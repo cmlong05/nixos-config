@@ -44,6 +44,9 @@
   # Enable networking
   networking.networkmanager.enable = true;
 
+  # virtualisation
+  virtualisation.podman.enable = true;
+
   # Set your time zone.
   time.timeZone = "Asia/Shanghai";
 
