@@ -2,7 +2,7 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 {
   imports =
@@ -78,12 +78,7 @@
   services.xserver.enable = false;
 
   services.flatpak.enable = true;
-  services.flatpak.remotes = [
-    {
-      name = "flathub";
-      location = "https://mirrors.ustc.edu.cn/flathub";
-    }
-  ];
+
   services.flatpak.packages = [
     "com.vivaldi.Vivaldi"
   ];
