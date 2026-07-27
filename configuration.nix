@@ -78,6 +78,15 @@
   services.xserver.enable = false;
 
   services.flatpak.enable = true;
+  services.flatpak.remotes = [
+    {
+      name = "flathub";
+      location = "https://mirrors.ustc.edu.cn/flathub";
+    }
+  ];
+  services.flatpak.packages = [
+    "com.vivaldi.Vivaldi"
+  ];
 
   # Enable the KDE Plasma Desktop Environment.
   services.displayManager.sddm.enable = true;
@@ -131,8 +140,7 @@
     # 清理策略：保留7天内和最近5个 generation
     clean.extraArgs = "--keep-since 7d --keep 5";
     # 如果你的 flake 在固定路径，可以在这里设置
-#     osFlake = "/home/chen/nixos-config/";
-    flake = "/home/chen/nixos-config/";
+    flake = "/home/chen/nixos-config";
 
   };
 
