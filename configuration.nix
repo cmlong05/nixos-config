@@ -19,7 +19,8 @@
       # status: https://mirror.sjtu.edu.cn/
       "https://mirror.sjtu.edu.cn/nix-channels/store"
       # status: https://mirrors.ustc.edu.cn/status/
-#       "https://mirrors.ustc.edu.cn/nix-channels/store"
+      # Access denied
+      # "https://mirrors.ustc.edu.cn/nix-channels/store"
       "https://cache.nixos.org"
     ];
   };
@@ -126,8 +127,8 @@
     packages = with pkgs; [
       kdePackages.kate
       kdePackages.fcitx5-configtool
-      #wechat
       vscodium
+      wechat
     ];
   };
 
