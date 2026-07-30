@@ -10,6 +10,7 @@
       ./hardware-configuration.nix
       ./modules/gpu.nix
       ./modules/network.nix
+      ./users.nix
     ];
 
   # custom binary caches
@@ -118,19 +119,6 @@
 
   # Enable touchpad support (enabled default in most desktopManager).
   # services.xserver.libinput.enable = true;
-
-  # Define a user account. Don't forget to set a password with ‘passwd’.
-  users.users."chen" = {
-    isNormalUser = true;
-    description = "chen";
-    extraGroups = [ "networkmanager" "wheel" ];
-    packages = with pkgs; [
-      kdePackages.kate
-      kdePackages.fcitx5-configtool
-      vscodium
-      wechat
-    ];
-  };
 
   # 启用 nh 并配置自动清理
   programs.nh = {

@@ -1,3 +1,5 @@
+# Define a user account. Don't forget to set a password with ‘passwd’.
+
 { config, pkgs, inputs, ... }:
 
 let
@@ -13,7 +15,7 @@ in {
       vscodium
       wechat
     ] ++ (with llmPackages; [
-
+        reasonix
     ]);
   };
 }
