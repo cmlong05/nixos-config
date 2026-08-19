@@ -10,6 +10,7 @@
       ./hardware-configuration.nix
       ./modules/gpu.nix
       ./modules/network.nix
+      ./modules/flatpak.nix
       ./users.nix
     ];
 
@@ -81,12 +82,6 @@
   # Enable the X11 windowing system.
   # You can disable this if you're only using the Wayland session.
   services.xserver.enable = false;
-
-  services.flatpak.enable = true;
-
-  services.flatpak.packages = [
-    "com.vivaldi.Vivaldi"
-  ];
 
   # Enable the KDE Plasma Desktop Environment.
   services.displayManager.sddm.enable = true;
