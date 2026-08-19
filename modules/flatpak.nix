@@ -4,7 +4,7 @@
     enable = true;
     packages = [
       "com.vivaldi.Vivaldi"
-      # 可以添加更多 flatpak 包
+      "io.github.slgobinath.SafeEyes"
       # "org.mozilla.firefox"
       # "com.spotify.Client"
     ];
