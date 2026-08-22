@@ -10,10 +10,12 @@ in {
     description = "chen";
     extraGroups = [ "networkmanager" "wheel" ];
     packages = with pkgs; [
+      chromium
       kdePackages.kate
       kdePackages.fcitx5-configtool
       vscodium
       wechat
+      karere # whatsapp
     ] ++ (with llmPackages; [
         reasonix
     ]);

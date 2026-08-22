@@ -11,6 +11,7 @@
       ./modules/gpu.nix
       ./modules/network.nix
       ./modules/flatpak.nix
+      ./modules/packages.nix
       ./users.nix
     ];
 
@@ -126,22 +127,10 @@
 
   };
 
-  # Install firefox.
-  programs.firefox.enable = true;
 
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
 
-  # List packages installed in system profile. To search, run:
-  # $ nix search wget
-  environment.systemPackages = with pkgs; [
-    git
-    python3
-    vim
-    wireguard-tools
-    wget
-    zellij
-  ];
 
   # Some programs need SUID wrappers, can be configured further or are
   # started in user sessions.
