@@ -1,10 +1,15 @@
-{ config, pkgs, ... }:
+{ config, pkgs, inputs, ... }:
 
 {
   # Home Manager needs a bit of information about you and the
   # paths it should manage.
   home.username = "chen";
   home.homeDirectory = "/home/chen";
+
+  # DeepSeek Harness (dsh) — 声明式安装，与 nix run github:numtide/llm-agents.nix#dsh 同一来源
+  home.packages = [
+    inputs.llm-agents.packages.${pkgs.system}.dsh
+  ];
 
   # This value determines the Home Manager release that your
   # configuration is compatible with. This helps avoid breakage

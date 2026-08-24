@@ -12,6 +12,7 @@
       ./modules/network.nix
       ./modules/flatpak.nix
       ./modules/packages.nix
+      ./modules/wechat.nix
       ./users.nix
     ];
 
@@ -19,12 +20,11 @@
   nix.settings = {
     substituters = [
       # cache mirror located in China
+      # USTC：2026-08 验证可用（此前注释"Access denied"已过时）
+      "https://mirrors.ustc.edu.cn/nix-channels/store"
       # status: https://mirror.sjtu.edu.cn/
+      # SJTU 对新路径同步不及时（narinfo 已同步但 nar 文件缺失/不完整，下载报 HTTP/2 流中断）
       "https://mirror.sjtu.edu.cn/nix-channels/store"
-      # status: https://mirrors.ustc.edu.cn/status/
-      # Access denied
-      # "https://mirrors.ustc.edu.cn/nix-channels/store"
-      "https://cache.nixos.org"
     ];
   };
 
@@ -35,8 +35,10 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  # Use latest kernel.
-  boot.kernelPackages = pkgs.linuxPackages_latest;
+  # 内核：钉在 7.1 系列（7.1.9），不要用 latest（7.2）。
+  # 原因：nvidia-open 595.71.05 与内核 7.2 不兼容（os-interface.c strncpy 隐式声明编译错误）。
+  # 等 nvidia 驱动支持 7.2 后可改回 pkgs.linuxPackages_latest。
+  boot.kernelPackages = pkgs.linuxPackages_7_1;
 
   networking.hostName = "nixos"; # Define your hostname.
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
