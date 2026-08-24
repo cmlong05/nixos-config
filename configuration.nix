@@ -51,7 +51,10 @@
   networking.networkmanager.enable = true;
 
   # virtualisation
-  virtualisation.podman.enable = true;
+  virtualisation.podman = {
+    enable = true;
+    dockerSocket.enable = true;   # 可选：保留 docker/podman compose 兼容
+  };
 
   # Set your time zone.
   time.timeZone = "Asia/Shanghai";
