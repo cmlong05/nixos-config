@@ -1,3 +1,4 @@
+# 系统级软件包
 { config, pkgs, ... }:
 
 {
@@ -12,9 +13,4 @@
     wget
     zellij
   ];
-
-
-  # 浏览器相关配置
-  # Install firefox.
-  programs.firefox.enable = true;
 }

@@ -1,4 +1,4 @@
-# /etc/nixos/modules/network.nix
+# 蓝牙配置
 { config, pkgs, ... }:
 
 {

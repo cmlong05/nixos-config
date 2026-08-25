@@ -8,6 +8,7 @@ in {
   users.users."chen" = {
     isNormalUser = true;
     description = "chen";
+    linger = true;  # Quadlet 用户容器服务开机自启
     extraGroups = [ "networkmanager" "wheel" ];
     packages = with pkgs; [
       chromium

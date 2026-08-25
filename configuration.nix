@@ -2,159 +2,29 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
-{ config, pkgs, lib, ... }:
+# 本文件只是模块入口：按领域拆分的配置见 ./modules/，
+# 硬件相关见 ./hardware-configuration.nix（生成文件，勿改），
+# 用户级配置见 ./home/，包覆盖见 ./overlays/。
+{ ... }:
 
 {
   imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
+      # 领域模块
+      ./modules/boot.nix
+      ./modules/networking.nix
+      ./modules/bluetooth.nix
+      ./modules/nix.nix
+      ./modules/locale.nix
+      ./modules/desktop.nix
+      ./modules/virtualisation.nix
       ./modules/gpu.nix
-      ./modules/network.nix
       ./modules/flatpak.nix
       ./modules/packages.nix
-      ./modules/wechat.nix
-      ./users.nix
+      # 用户账户
+      ./modules/users.nix
     ];
-
-  # custom binary caches
-  nix.settings = {
-    substituters = [
-      # cache mirror located in China
-      # USTC：2026-08 验证可用（此前注释"Access denied"已过时）
-      "https://mirrors.ustc.edu.cn/nix-channels/store"
-      # status: https://mirror.sjtu.edu.cn/
-      # SJTU 对新路径同步不及时（narinfo 已同步但 nar 文件缺失/不完整，下载报 HTTP/2 流中断）
-      "https://mirror.sjtu.edu.cn/nix-channels/store"
-    ];
-  };
-
-  # flakes
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
-
-  # Bootloader.
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
-
-  # 内核：钉在 7.1 系列（7.1.9），不要用 latest（7.2）。
-  # 原因：nvidia-open 595.71.05 与内核 7.2 不兼容（os-interface.c strncpy 隐式声明编译错误）。
-  # 等 nvidia 驱动支持 7.2 后可改回 pkgs.linuxPackages_latest。
-  boot.kernelPackages = pkgs.linuxPackages_7_1;
-
-  networking.hostName = "nixos"; # Define your hostname.
-  # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
-
-  # Configure network proxy if necessary
-  # networking.proxy.default = "http://user:password@proxy:port/";
-  # networking.proxy.noProxy = "127.0.0.1,localhost,internal.domain";
-
-  # Enable networking
-  networking.networkmanager.enable = true;
-
-  # virtualisation
-  virtualisation.podman = {
-    enable = true;
-    dockerSocket.enable = true;   # 可选：保留 docker/podman compose 兼容
-  };
-
-  # Set your time zone.
-  time.timeZone = "Asia/Shanghai";
-
-  # Select internationalisation properties.
-  i18n.defaultLocale = "zh_CN.UTF-8";
-
-  i18n.extraLocaleSettings = {
-    LC_ADDRESS = "zh_CN.UTF-8";
-    LC_IDENTIFICATION = "zh_CN.UTF-8";
-    LC_MEASUREMENT = "zh_CN.UTF-8";
-    LC_MONETARY = "zh_CN.UTF-8";
-    LC_NAME = "zh_CN.UTF-8";
-    LC_NUMERIC = "zh_CN.UTF-8";
-    LC_PAPER = "zh_CN.UTF-8";
-    LC_TELEPHONE = "zh_CN.UTF-8";
-    LC_TIME = "zh_CN.UTF-8";
-  };
-
-  i18n.inputMethod = {
-    type = "fcitx5";
-    enable = true;
-    fcitx5.waylandFrontend = true;
-    fcitx5.addons = with pkgs; [
-      fcitx5-gtk
-      fcitx5-nord
-      qt6Packages.fcitx5-chinese-addons
-    ];
-  };
-
-  # Enable the X11 windowing system.
-  # You can disable this if you're only using the Wayland session.
-  services.xserver.enable = false;
-
-  # Enable the KDE Plasma Desktop Environment.
-  services.displayManager.sddm.enable = true;
-  services.desktopManager.plasma6.enable = true;
-
-  # Configure keymap in X11
-  services.xserver.xkb = {
-    layout = "cn";
-    variant = "";
-  };
-
-  # Enable CUPS to print documents.
-  services.printing.enable = true;
-
-  # Enable sound with pipewire.
-  services.pulseaudio.enable = false;
-  security.rtkit.enable = true;
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    alsa.support32Bit = true;
-    pulse.enable = true;
-    # If you want to use JACK applications, uncomment this
-    #jack.enable = true;
-
-    # use the example session manager (no others are packaged yet so this is enabled by default,
-    # no need to redefine it in your config for now)
-    #media-session.enable = true;
-  };
-
-  # Enable touchpad support (enabled default in most desktopManager).
-  # services.xserver.libinput.enable = true;
-
-  # 启用 nh 并配置自动清理
-  programs.nh = {
-    enable = true;
-    clean.enable = true;
-    # 清理策略：保留7天内和最近5个 generation
-    clean.extraArgs = "--keep-since 7d --keep 5";
-    # 如果你的 flake 在固定路径，可以在这里设置
-    flake = "/home/chen/nixos-config";
-
-  };
-
-
-  # Allow unfree packages
-  nixpkgs.config.allowUnfree = true;
-
-
-  # Some programs need SUID wrappers, can be configured further or are
-  # started in user sessions.
-  # programs.mtr.enable = true;
-  # programs.gnupg.agent = {
-  #   enable = true;
-  #   enableSSHSupport = true;
-  # };
-
-  # List services that you want to enable:
-
-  # Enable the OpenSSH daemon.
-  # services.openssh.enable = true;
-
-  # Open ports in the firewall.
-  # networking.firewall.allowedTCPPorts = [ ... ];
-  # networking.firewall.allowedUDPPorts = [ ... ];
-  # Or disable the firewall altogether.
-  # networking.firewall.enable = false;
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
@@ -163,5 +33,4 @@
   # Before changing this value read the documentation for this option
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
   system.stateVersion = "26.05"; # Did you read the comment?
-
 }

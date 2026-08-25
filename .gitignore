@@ -1,0 +1,7 @@
+# nix build 产物
+/result
+/result-*
+
+# direnv / nix-direnv
+.direnv/
+.envrc
