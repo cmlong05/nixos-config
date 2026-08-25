@@ -22,6 +22,23 @@
   # Enable CUPS to print documents.
   services.printing.enable = true;
 
+  # 标签打印机：经局域网 CUPS 服务器 (10.10.10.9) 共享的 Xprinter XP-470E。
+  # 远端支持 IPP Everywhere，本地用内置 everywhere 驱动自动探测生成 PPD，
+  # 无需安装厂商驱动。尺寸等选项在打印对话框中选择（如 2x4in / 4x6in）。
+  hardware.printers = {
+    # 如需设为默认打印机，取消下行注释：
+    # ensureDefaultPrinter = "Xprinter_XP-470E";
+    ensurePrinters = [
+      {
+        name = "Xprinter_XP-470E";
+        description = "Xprinter XP-470E 标签打印机 (10.10.10.9)";
+        location = "office";
+        deviceUri = "ipp://10.10.10.9:631/printers/Xprinter_XP-470E";
+        model = "everywhere";
+      }
+    ];
+  };
+
   # Enable sound with pipewire.
   services.pulseaudio.enable = false;
   security.rtkit.enable = true;
