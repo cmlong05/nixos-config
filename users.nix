@@ -15,7 +15,7 @@ in {
       kdePackages.kate
       kdePackages.fcitx5-configtool
       vscodium
-      wechat
+      wechat-uos # 微信（UOS 商店版 4.x，替代原 AppImage 版 wechat）
       karere # whatsapp
     ] ++ (with llmPackages; [
         reasonix
