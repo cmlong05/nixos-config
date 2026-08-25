@@ -6,7 +6,7 @@
 
 ```
 nixos-config/
-├── flake.nix                    # 入口：inputs + outputs（暴露 overlays.wechat）
+├── flake.nix                    # 入口：inputs + outputs
 ├── configuration.nix            # 模块入口：imports + stateVersion
 ├── hardware-configuration.nix   # 硬件扫描生成文件，勿改
 ├── modules/                     # 系统级模块（按领域拆分）
@@ -27,8 +27,6 @@ nixos-config/
 │       ├── shell.nix            # bash + direnv
 │       ├── apps.nix             # 用户级应用包
 │       └── llm.nix              # llm-agents 工具（dsh / reasonix）
-└── overlays/
-    └── wechat.nix               # wechat 下载源修复（包覆盖）
 ```
 
 ## 常用命令
@@ -49,8 +47,6 @@ nix flake check
 
 ## 注意事项 / 踩坑记录
 
-- **wechat overlay**：官方 AppImage 链接是"浮动"的（总是指向最新版），腾讯更新后
-  构建会因哈希不匹配报错，按报错提示更新 `overlays/wechat.nix` 中的 hash 和 version。
 - **内核钉版 7.1**：nvidia-open 595.71.05 与内核 7.2 不兼容，等驱动支持后再改回
   `linuxPackages_latest`（见 `modules/boot.nix` 注释）。
 - **缓存源**：USTC 镜像 2026-08 验证可用；SJTU 对新路径同步不及时（narinfo 已同步

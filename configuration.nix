@@ -4,7 +4,7 @@
 
 # 本文件只是模块入口：按领域拆分的配置见 ./modules/，
 # 硬件相关见 ./hardware-configuration.nix（生成文件，勿改），
-# 用户级配置见 ./home/，包覆盖见 ./overlays/。
+# 用户级配置见 ./home/。
 { ... }:
 
 {
