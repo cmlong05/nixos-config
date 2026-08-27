@@ -17,7 +17,16 @@
   };
 
   # 浏览器：Firefox（经 programs 模块启用）
-  programs.firefox.enable = true;
+  programs.firefox = {
+    enable = true;
+    policies.Homepage.StartPage = "previous-session";
+  };
+
+  # 浏览器：Chromium（经 home-manager 安装，见 home/modules/apps.nix）
+  # 重启后恢复上次会话
+  environment.etc."chromium/policies/recommended/restore-session.json".text = ''
+    { "RestoreOnStartup": 1 }
+  '';
 
   # Enable CUPS to print documents.
   services.printing.enable = true;
