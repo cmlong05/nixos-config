@@ -12,5 +12,6 @@
     wireguard-tools
     wget
     zellij
+    li-ri
   ];
 }
