@@ -8,6 +8,7 @@
   home.packages = with pkgs; [
     chromium
     kdePackages.kate
+    kdePackages.krdc
     kdePackages.fcitx5-configtool
     vscodium
   ];
