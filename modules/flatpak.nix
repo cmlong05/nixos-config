@@ -12,6 +12,7 @@ in
     packages = [
       "com.vivaldi.Vivaldi"
       "com.tencent.WeChat"
+      "com.tux4kids.tuxmath"
       # "com.spotify.Client"
     ];
 

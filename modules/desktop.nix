@@ -10,8 +10,6 @@
   services.displayManager.sddm.enable = true;
   services.desktopManager.plasma6.enable = true;
 
-# 超时缩短为 10s；plasmashell 
-  systemd.user.services."plasma-plasmashell".serviceConfig.TimeoutStopSec = "10s";
 
   # Configure keymap in X11
   services.xserver.xkb = {
