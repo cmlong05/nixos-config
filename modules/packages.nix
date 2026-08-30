@@ -11,6 +11,10 @@ let
     wget
     zellij
     li-ri
+    #office
+    libreoffice-qt
+    hunspell
+    hunspellDicts.en_US
   ];
 
   # 从 nixos-unstable 单独取的软件（需要新版本，或需要补 nixpkgs 没默认装的可选依赖）。
