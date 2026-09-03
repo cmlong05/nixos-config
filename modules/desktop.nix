@@ -49,6 +49,16 @@
     ];
   };
 
+  # ensure-printers 默认是开机一次性服务：若开机时远端 CUPS 服务器 (10.10.10.9)
+  # 尚未就绪，它会失败且不自动重试，导致打印机队列缺失。
+  # 这里覆盖为失败自动重试，直到远端可连为止。
+  systemd.services.ensure-printers = {
+    serviceConfig = {
+      Restart = "on-failure";
+      RestartSec = "1800s";
+    };
+  };
+
   # Enable sound with pipewire.
   services.pulseaudio.enable = false;
   security.rtkit.enable = true;
