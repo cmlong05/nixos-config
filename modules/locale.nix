@@ -31,7 +31,11 @@
     ];
   };
 
-  # 中文字体：weasyprint 标签渲染需要
-  # 注：26.05 中 noto-fonts-cjk 已改名为 noto-fonts-cjk-sans
-  fonts.packages = with pkgs; [ noto-fonts-cjk-sans dejavu_fonts ];
+  # 中文字体
+  fonts.packages = with pkgs; [ noto-fonts-cjk-sans noto-fonts-cjk-serif dejavu_fonts ];
+  fonts.fontconfig.defaultFonts = {
+    sansSerif = [ "Noto Sans" "Noto Sans CJK SC" ];
+    serif = [ "Noto Serif" "Noto Serif CJK SC" ];
+    monospace = [ "Hack" "Noto Sans Mono" "Noto Sans Mono CJK SC" ];
+  };
 }
