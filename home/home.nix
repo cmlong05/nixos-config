@@ -1,4 +1,4 @@
-# Home Manager 配置入口（用户 chen）
+# Home Manager 配置入口（用户 chen，作者机 nixos）
 { config, pkgs, inputs, ... }:
 
 {
@@ -8,10 +8,9 @@
     ./modules/llm.nix
   ];
 
-  # Home Manager needs a bit of information about you and the
-  # paths it should manage.
-  home.username = "chen";
-  home.homeDirectory = "/home/chen";
+  # 无需手写 home.username / home.homeDirectory：本文件经 home-manager.users.chen
+  # 挂载时，home-manager 的 NixOS 集成会自动从 users.users.chen 注入用户名与家目录
+  # （见 home-manager 源码 nixos/common.nix），避免在两处重复维护用户名。
 
   # This value determines the Home Manager release that your
   # configuration is compatible with. This helps avoid breakage

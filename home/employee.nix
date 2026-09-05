@@ -10,8 +10,8 @@
     # 不引入 llm.nix：员工机不装 dsh / reasonix（也就不用拉取 llm-agents 输入）
   ];
 
-  home.username = "mubimuba";
-  home.homeDirectory = "/home/mubimuba";
+  # 无需手写 home.username / home.homeDirectory：本文件经 home-manager.users.mubimuba
+  # 挂载时自动从 users.users.mubimuba 注入（单一事实来源在 hosts/mubimuba/users.nix）。
 
   home.stateVersion = "26.05";
 
