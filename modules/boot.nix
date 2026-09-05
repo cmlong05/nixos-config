@@ -10,4 +10,6 @@
   # 原因：nvidia-open 595.71.05 与内核 7.2 不兼容（os-interface.c strncpy 隐式声明编译错误）。
   # 等 nvidia 驱动支持 7.2 后可改回 pkgs.linuxPackages_latest。
   boot.kernelPackages = pkgs.linuxPackages_7_1;
+  #boot.kernelPackages = pkgs.linuxPackages_latest;
+
 }
