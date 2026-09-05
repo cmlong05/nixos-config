@@ -1,5 +1,5 @@
 {
-  description = "NixOS configuration (multi-host: nixos + nzs)";
+  description = "NixOS configuration (multi-host: nixos + mubimuba)";
 
   inputs = {
     nixpkgs.url = "git+https://mirrors.nju.edu.cn/git/nixpkgs.git?ref=nixos-26.05&shallow=1";
@@ -45,8 +45,8 @@
       nixosConfigurations = {
         # 作者日常机（hostname: nixos）
         nixos = mkHost ./hosts/nixos/configuration.nix;
-        # 员工机（hostname: nzs，同款硬件）
-        nzs = mkHost ./hosts/nzs/configuration.nix;
+        # 员工机（hostname: mubimuba，同款硬件）
+        mubimuba = mkHost ./hosts/mubimuba/configuration.nix;
       };
     };
 }

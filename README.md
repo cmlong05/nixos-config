@@ -1,11 +1,11 @@
-# NixOS 配置（多主机：nixos + nzs）
+# NixOS 配置（多主机：nixos + mubimuba）
 
 使用 flakes + home-manager 的多主机 NixOS 配置仓库。
 
 | 主机 | 用途 | 用户 | 说明 |
 |------|------|------|------|
 | `nixos`（本机） | 作者日常机 | chen | 全功能：蓝牙 / podman / dsh 等 |
-| `nzs` | 员工机（同款硬件） | mubimuba（员工）+ chen（管理员） | 精简：无蓝牙 / podman / dsh；mubimuba 无 sudo |
+| `mubimuba` | 员工机（同款硬件） | mubimuba（员工）+ bumooby（管理员） | 精简：无蓝牙 / podman / dsh；mubimuba 无 sudo |
 
 ## 目录结构
 
@@ -19,10 +19,10 @@ nixos-config/
 │   │   ├── bluetooth.nix        # 本机开蓝牙
 │   │   ├── virtualisation.nix   # 本机开 podman
 │   │   └── users.nix            # 用户 chen
-│   └── nzs/                     # 员工机
-│       ├── configuration.nix    # 入口（hostName=nzs）
+│   └── mubimuba/                # 员工机
+│       ├── configuration.nix    # 入口（hostName=mubimuba）
 │       ├── hardware-configuration.nix  # ⚠️ 模板，装机时必须在员工机重新生成
-│       └── users.nix            # mubimuba（员工）+ chen（管理员）
+│       └── users.nix            # mubimuba（员工）+ bumooby（管理员）
 ├── modules/                     # 共享领域模块（两台机器一致的部分）
 │   ├── boot.nix                 # systemd-boot + 内核钉版
 │   ├── networking.nix           # NetworkManager（hostName 在各主机配置）
@@ -48,7 +48,7 @@ nixos-config/
 nh os switch            # 默认按 hostname 取 nixos 配置
 
 # 指定主机（如员工机）
-nh os switch --flake .#nzs
+nh os switch --flake .#mubimuba
 
 # 仅 home-manager（chen）
 home-manager switch --flake .#nixos
@@ -61,10 +61,10 @@ nix flake check
 ```
 
 > 员工机装机后，把仓库放到员工机 `/etc/nixos`，并把
-> `hosts/nzs/configuration.nix` 里注释掉的
+> `hosts/mubimuba/configuration.nix` 里注释掉的
 > `programs.nh.flake = "/etc/nixos";` 取消注释（或按实际路径修改）。
 
-## 员工机（nzs）部署清单
+## 员工机（mubimuba）部署清单
 
 在**同款硬件**（AMD CPU + NVIDIA 3060）的新电脑上装 NixOS：
 
@@ -72,12 +72,12 @@ nix flake check
    `nixos-generate-config --root /mnt` 生成**该机专属**的
    `hardware-configuration.nix`（磁盘 UUID 每台不同，勿用仓库里的模板）。
 2. 把本仓库放到 `/mnt/etc/nixos/`，并用新生成的 hardware-configuration.nix
-   **覆盖 `hosts/nzs/hardware-configuration.nix`**。
-3. `nixos-install --flake /mnt/etc/nixos#nzs`。
+   **覆盖 `hosts/mubimuba/hardware-configuration.nix`**。
+3. `nixos-install --flake /mnt/etc/nixos#mubimuba`。
 4. 首次登录前设置密码（本配置不含密码）：
-   `passwd mubimuba`（员工）、`passwd chen`（管理员）。
+   `passwd mubimuba`（员工）、`passwd bumooby`（管理员）。
 5. 员工机上 mubimuba **没有 wheel（无 sudo）**；如需提权，把 `wheel`
-   加回 `hosts/nzs/users.nix` 的 mubimuba extraGroups。
+   加回 `hosts/mubimuba/users.nix` 的 mubimuba extraGroups。
 6. 员工机上需要哪些用户级应用，改 `home/employee.nix`。
 
 ## 注意事项 / 踩坑记录
@@ -85,7 +85,7 @@ nix flake check
 - **机器差异放 hosts/，共性放 modules/**：hostName、用户、蓝牙/podman
   开关这类机器相关配置都在 `hosts/<name>/` 下，不要写进共享模块。
 - **hardware-configuration.nix 是生成文件**：由 `nixos-generate-config`
-  生成，改动会被覆盖；`hosts/nzs/` 下的版本只是让仓库可求值的模板。
+  生成，改动会被覆盖；`hosts/mubimuba/` 下的版本只是让仓库可求值的模板。
 - **内核钉版 7.1**：nvidia-open 595.71.05 与内核 7.2 不兼容（两台同款
   NVIDIA 3060），等驱动支持后再改回 `linuxPackages_latest`（boot.nix）。
 - **缓存源**：USTC 镜像 2026-08 验证可用；SJTU 对新路径同步不及时，如遇
