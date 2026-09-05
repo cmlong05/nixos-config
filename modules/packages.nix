@@ -1,4 +1,4 @@
-# 系统级软件包
+# 系统级软件包（两台机器共享的部分）
 { config, pkgs, pkgs-unstable, ... }:
 
 let
@@ -6,12 +6,9 @@ let
   stablePackages = with pkgs; [
     git
     python3
-    vim
     wireguard-tools
     wget
     zellij
-    li-ri
-    #office
     libreoffice-qt
     hunspell
     hunspellDicts.en_US

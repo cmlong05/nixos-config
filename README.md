@@ -1,57 +1,95 @@
-# NixOS 配置
+# NixOS 配置（多主机：nixos + nzs）
 
-单机 NixOS 配置仓库，使用 flakes + home-manager。主机名 `nixos`，用户 `chen`。
+使用 flakes + home-manager 的多主机 NixOS 配置仓库。
+
+| 主机 | 用途 | 用户 | 说明 |
+|------|------|------|------|
+| `nixos`（本机） | 作者日常机 | chen | 全功能：蓝牙 / podman / dsh 等 |
+| `nzs` | 员工机（同款硬件） | mubimuba（员工）+ chen（管理员） | 精简：无蓝牙 / podman / dsh；mubimuba 无 sudo |
 
 ## 目录结构
 
 ```
 nixos-config/
-├── flake.nix                    # 入口：inputs + outputs
-├── configuration.nix            # 模块入口：imports + stateVersion
-├── hardware-configuration.nix   # 硬件扫描生成文件，勿改
-├── modules/                     # 系统级模块（按领域拆分）
+├── flake.nix                    # 入口：inputs + 两主机 nixosConfigurations
+├── hosts/                       # 每台机器的配置
+│   ├── nixos/                   # 作者机
+│   │   ├── configuration.nix    # 入口（hostName=nixos）
+│   │   ├── hardware-configuration.nix  # 本机生成，勿改
+│   │   ├── bluetooth.nix        # 本机开蓝牙
+│   │   ├── virtualisation.nix   # 本机开 podman
+│   │   └── users.nix            # 用户 chen
+│   └── nzs/                     # 员工机
+│       ├── configuration.nix    # 入口（hostName=nzs）
+│       ├── hardware-configuration.nix  # ⚠️ 模板，装机时必须在员工机重新生成
+│       └── users.nix            # mubimuba（员工）+ chen（管理员）
+├── modules/                     # 共享领域模块（两台机器一致的部分）
 │   ├── boot.nix                 # systemd-boot + 内核钉版
-│   ├── networking.nix           # 主机名 + NetworkManager
-│   ├── bluetooth.nix            # 蓝牙
-│   ├── nix.nix                  # 缓存源 / flakes / nh 清理 / allowUnfree
+│   ├── networking.nix           # NetworkManager（hostName 在各主机配置）
+│   ├── nix.nix                  # 缓存源 / flakes / nh / allowUnfree
 │   ├── locale.nix               # 时区 / locale / fcitx5 / 字体
 │   ├── desktop.nix              # SDDM + Plasma 6 / Firefox / PipeWire / CUPS
-│   ├── virtualisation.nix       # Podman
 │   ├── gpu.nix                  # NVIDIA 驱动
-│   ├── flatpak.nix              # Flatpak 及声明式应用
-│   ├── packages.nix             # 系统级软件包
-│   └── users.nix                # 用户账户定义
-├── home/                        # home-manager 配置（用户 chen）
-│   ├── home.nix                 # 入口
-│   └── modules/
-│       ├── shell.nix            # bash + direnv
-│       ├── apps.nix             # 用户级应用包
-│       └── llm.nix              # llm-agents 工具（dsh / reasonix）
+│   ├── flatpak.nix              # Flatpak 共享应用（Vivaldi/微信）
+│   └── packages.nix             # 系统级共享软件包
+└── home/                        # home-manager 配置
+    ├── home.nix                 # chen 入口（作者机；含 dsh 等）
+    ├── employee.nix             # mubimuba 入口（员工机；不含 llm/dsh）
+    └── modules/
+        ├── shell.nix            # bash + direnv
+        ├── apps.nix             # 用户级应用包
+        └── llm.nix              # llm-agents 工具（dsh / reasonix，仅作者机）
 ```
 
 ## 常用命令
 
 ```bash
-# 应用系统配置（推荐，含自动清理）
-nh os switch
+# 本机（作者机）应用配置
+nh os switch            # 默认按 hostname 取 nixos 配置
 
-# 仅 home-manager
-home-manager switch --flake .#chen
+# 指定主机（如员工机）
+nh os switch --flake .#nzs
+
+# 仅 home-manager（chen）
+home-manager switch --flake .#nixos
 
 # 更新锁定输入
 nix flake update
 
-# 校验 flake（本仓库所有模块求值）
+# 校验 flake（两主机全部求值）
 nix flake check
 ```
 
+> 员工机装机后，把仓库放到员工机 `/etc/nixos`，并把
+> `hosts/nzs/configuration.nix` 里注释掉的
+> `programs.nh.flake = "/etc/nixos";` 取消注释（或按实际路径修改）。
+
+## 员工机（nzs）部署清单
+
+在**同款硬件**（AMD CPU + NVIDIA 3060）的新电脑上装 NixOS：
+
+1. 用 U 盘引导并分区（EFI + btrfs，可照抄本机布局），挂载后
+   `nixos-generate-config --root /mnt` 生成**该机专属**的
+   `hardware-configuration.nix`（磁盘 UUID 每台不同，勿用仓库里的模板）。
+2. 把本仓库放到 `/mnt/etc/nixos/`，并用新生成的 hardware-configuration.nix
+   **覆盖 `hosts/nzs/hardware-configuration.nix`**。
+3. `nixos-install --flake /mnt/etc/nixos#nzs`。
+4. 首次登录前设置密码（本配置不含密码）：
+   `passwd mubimuba`（员工）、`passwd chen`（管理员）。
+5. 员工机上 mubimuba **没有 wheel（无 sudo）**；如需提权，把 `wheel`
+   加回 `hosts/nzs/users.nix` 的 mubimuba extraGroups。
+6. 员工机上需要哪些用户级应用，改 `home/employee.nix`。
+
 ## 注意事项 / 踩坑记录
 
-- **内核钉版 7.1**：nvidia-open 595.71.05 与内核 7.2 不兼容，等驱动支持后再改回
-  `linuxPackages_latest`（见 `modules/boot.nix` 注释）。
-- **缓存源**：USTC 镜像 2026-08 验证可用；SJTU 对新路径同步不及时（narinfo 已同步
-  但 nar 文件缺失），如遇 HTTP/2 流中断报错可临时移除 SJTU 源。
-- **hardware-configuration.nix** 由 `nixos-generate-config` 生成，改动会被覆盖。
+- **机器差异放 hosts/，共性放 modules/**：hostName、用户、蓝牙/podman
+  开关这类机器相关配置都在 `hosts/<name>/` 下，不要写进共享模块。
+- **hardware-configuration.nix 是生成文件**：由 `nixos-generate-config`
+  生成，改动会被覆盖；`hosts/nzs/` 下的版本只是让仓库可求值的模板。
+- **内核钉版 7.1**：nvidia-open 595.71.05 与内核 7.2 不兼容（两台同款
+  NVIDIA 3060），等驱动支持后再改回 `linuxPackages_latest`（boot.nix）。
+- **缓存源**：USTC 镜像 2026-08 验证可用；SJTU 对新路径同步不及时，如遇
+  HTTP/2 流中断报错可临时移除 SJTU 源。
 - 仓库锁定的 nixpkgs 分支为 `nixos-26.05`，home-manager 为 `release-26.05`，
   两者需保持大版本一致。
 
@@ -62,4 +100,4 @@ nix flake check
 | nixpkgs | 主包源（NJU 镜像，26.05） |
 | nix-flatpak | flatpak 声明式安装模块 |
 | home-manager | 用户环境管理 |
-| llm-agents | dsh / reasonix 等 LLM 工具包 |
+| llm-agents | dsh / reasonix 等 LLM 工具包（仅作者机 chen 使用） |

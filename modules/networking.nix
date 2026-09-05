@@ -1,8 +1,8 @@
-# 网络：主机名与 NetworkManager
+# 网络：NetworkManager
+# 注意：hostName 属于机器差异，在各主机配置里设置（hosts/<name>/configuration.nix）
 { config, pkgs, ... }:
 
 {
-  networking.hostName = "nixos"; # Define your hostname.
   # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
 
   # Configure network proxy if necessary

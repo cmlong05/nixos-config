@@ -1,5 +1,5 @@
 {
-  description = "NixOS configuration";
+  description = "NixOS configuration (multi-host: nixos + nzs)";
 
   inputs = {
     nixpkgs.url = "git+https://mirrors.nju.edu.cn/git/nixpkgs.git?ref=nixos-26.05&shallow=1";
@@ -20,24 +20,33 @@
         inherit system;
         config.allowUnfree = true;
       };
-    in
-    {
-      nixosConfigurations = {
-        nixos = nixpkgs.lib.nixosSystem {
+
+      # 每台主机都要叠加的 NixOS 模块：nix-flatpak 与 home-manager
+      sharedModules = [
+        nix-flatpak.nixosModules.nix-flatpak
+        home-manager.nixosModules.home-manager
+        {
+          home-manager.useGlobalPkgs = true;
+          home-manager.useUserPackages = true;
+          home-manager.extraSpecialArgs = { inherit inputs; };
+        }
+      ];
+
+      mkHost = hostDir:
+        nixpkgs.lib.nixosSystem {
           inherit system;
           specialArgs = { inherit inputs pkgs-unstable; };
           modules = [
-            ./configuration.nix
-            nix-flatpak.nixosModules.nix-flatpak
-            home-manager.nixosModules.home-manager
-            {
-              home-manager.useGlobalPkgs = true;
-              home-manager.useUserPackages = true;
-              home-manager.extraSpecialArgs = { inherit inputs; };
-              home-manager.users.chen = ./home/home.nix;
-            }
-          ];
+            hostDir
+          ] ++ sharedModules;
         };
+    in
+    {
+      nixosConfigurations = {
+        # 作者日常机（hostname: nixos）
+        nixos = mkHost ./hosts/nixos/configuration.nix;
+        # 员工机（hostname: nzs，同款硬件）
+        nzs = mkHost ./hosts/nzs/configuration.nix;
       };
     };
 }
