@@ -60,9 +60,6 @@ nix flake update
 nix flake check
 ```
 
-> nh 的 `programs.nh.flake` 已在共享模块 `modules/nix.nix` 统一设为
-> `/etc/nixos`（两机装机后仓库都在该路径），无需按主机手动配置。
-
 ## 员工机（mubimuba）部署清单
 
 在**同款硬件**（AMD CPU + NVIDIA 3060）的新电脑上装 NixOS：
