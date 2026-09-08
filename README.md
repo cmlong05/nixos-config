@@ -62,16 +62,26 @@ nix flake check
 
 ## 员工机（mubimuba）部署清单
 
-在**同款硬件**（AMD CPU + NVIDIA 3060）的新电脑上装 NixOS：
+在**同款硬件**（AMD CPU + NVIDIA 3060）的新电脑上装 NixOS。以下流程为
+**全新装机的一次性操作**，系统装好后日常只靠 `nh os switch` 维护。
 
-1. 用 U 盘引导并分区（EFI + btrfs，可照抄本机布局），挂载后
-   `nixos-generate-config --root /mnt` 生成**该机专属**的
+> **第 0 步：选择引导介质（二选一，仅用于启动安装环境，系统本身不写入介质）**
+>
+> - **方式 A：NixOS 安装 U 盘** —— 官网 ISO 写入 U 盘，从 U 盘启动。
+> - **方式 B：作者的移动硬盘系统** —— 把跑着本仓库系统的 USB 移动硬盘
+>   （作者机本体）插到员工机上并从它启动，即可当作现成安装环境（工具齐全）。
+>
+> 两种方式进入的环境相同，后续步骤完全一致。**注意：给员工机分区前务必
+> `lsblk` 分清盘**，目标必须是员工机内置硬盘，避免误抹引导介质本身。
+
+1. 对**员工机内置硬盘**分区（EFI + btrfs，可照抄本机布局），挂载到 `/mnt`，
+   然后 `nixos-generate-config --root /mnt` 生成**该机专属**的
    `hardware-configuration.nix`（磁盘 UUID 每台不同，勿用仓库里的模板）。
 2. 把本仓库放到 `/mnt/etc/nixos/`，并用新生成的 hardware-configuration.nix
    **覆盖 `hosts/mubimuba/hardware-configuration.nix`**。
 3. `nixos-install --flake /mnt/etc/nixos#mubimuba`。
-4. 首次登录前设置密码（本配置不含密码）：
-   `passwd mubimuba`（员工）、`passwd bumooby`（管理员）。
+4. 重启（拔掉引导介质，从员工机内置硬盘启动），首次登录前设置密码
+   （本配置不含密码）：`passwd mubimuba`（员工）、`passwd bumooby`（管理员）。
 5. 员工机上 mubimuba **没有 wheel（无 sudo）**；如需提权，把 `wheel`
    加回 `hosts/mubimuba/users.nix` 的 mubimuba extraGroups。
 6. 员工机上需要哪些用户级应用，改 `home/employee.nix`。
