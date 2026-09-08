@@ -17,11 +17,12 @@
   # flakes
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
-  # 启用 nh 并配置自动清理
-  # 注意：programs.nh.flake 属于机器差异（每台机器仓库位置可能不同），
-  # 在各主机 configuration.nix 中设置。
+  # 启用 nh 并配置自动清理。
+  # flake 统一指向 /etc/nixos：两台机器装机后仓库都在该路径
+  # （作者机为软链，员工机为安装时的挂载点），无需按机器区分。
   programs.nh = {
     enable = true;
+    flake = "/etc/nixos";
     clean.enable = true;
     # 清理策略：保留7天内和最近5个 generation
     clean.extraArgs = "--keep-since 7d --keep 5";

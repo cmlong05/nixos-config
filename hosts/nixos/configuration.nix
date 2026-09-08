@@ -36,9 +36,5 @@
   # 作者机 home-manager：用户 chen
   home-manager.users.chen = ../../home/home.nix;
 
-  # nh 使用的 flake 路径。用 /etc/nixos（指向本仓库的软链），避免写死用户家目录；
-  # 若仓库迁移，只需更新 /etc/nixos 软链。
-  programs.nh.flake = "/etc/nixos";
-
   system.stateVersion = "26.05"; # Did you read the comment?
 }

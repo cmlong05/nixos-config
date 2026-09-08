@@ -27,8 +27,5 @@
   # 管理员 bumooby 仅作为系统账户用于维护，不额外配桌面 home。
   home-manager.users.mubimuba = ../../home/employee.nix;
 
-  # nh 使用的 flake 路径：员工机上按仓库实际位置修改
-  # programs.nh.flake = "/etc/nixos";
-
   system.stateVersion = "26.05"; # Did you read the comment?
 }

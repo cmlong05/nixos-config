@@ -60,9 +60,8 @@ nix flake update
 nix flake check
 ```
 
-> 员工机装机后，把仓库放到员工机 `/etc/nixos`，并把
-> `hosts/mubimuba/configuration.nix` 里注释掉的
-> `programs.nh.flake = "/etc/nixos";` 取消注释（或按实际路径修改）。
+> nh 的 `programs.nh.flake` 已在共享模块 `modules/nix.nix` 统一设为
+> `/etc/nixos`（两机装机后仓库都在该路径），无需按主机手动配置。
 
 ## 员工机（mubimuba）部署清单
 
