@@ -31,8 +31,10 @@
     li-ri
   ];
   # 作者机专属 flatpak 应用（员工机不需要）：已从共享 modules/flatpak.nix 中移出
-  services.flatpak.packages = [ "com.tux4kids.tuxmath" ];
-
+  services.flatpak.packages =[
+      "com.tux4kids.tuxmath" 
+      "com.qq.QQ"
+    ];
   # 作者机 home-manager：用户 chen
   home-manager.users.chen = ../../home/home.nix;
 
