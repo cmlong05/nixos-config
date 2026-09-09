@@ -60,50 +60,6 @@ nix flake update
 nix flake check
 ```
 
-## 员工机（mubimuba）部署清单
-
-在**同款硬件**（AMD CPU + NVIDIA 3060）的新电脑上装 NixOS。以下流程为
-**全新装机的一次性操作**，系统装好后日常只靠 `nh os switch` 维护。
-
-> **第 0 步：选择引导介质（二选一，仅用于启动安装环境，系统本身不写入介质）**
->
-> - **方式 A：NixOS 安装 U 盘** —— 官网 ISO 写入 U 盘，从 U 盘启动。
-> - **方式 B：作者的移动硬盘系统** —— 把跑着本仓库系统的 USB 移动硬盘
->   （作者机本体）插到员工机上并从它启动，即可当作现成安装环境（工具齐全）。
->
-> 两种方式进入的环境相同，后续步骤完全一致。**注意：给员工机分区前务必
-> `lsblk` 分清楚目标盘**，目标必须是员工机内置硬盘，避免误抹引导介质本身。
-
-1. 对**员工机内置硬盘**分区（EFI + btrfs，可照抄本机布局），挂载到 `/mnt`，
-   然后 `nixos-generate-config --root /mnt` 生成**该机专属**的
-   `hardware-configuration.nix`（磁盘 UUID 每台不同，勿用仓库里的模板）。
-2. 把本仓库放到 `/mnt/etc/nixos/`，并用新生成的 hardware-configuration.nix
-   **覆盖 `hosts/mubimuba/hardware-configuration.nix`**。
-3. `nixos-install --flake /mnt/etc/nixos#mubimuba`。
-   安装过程中会**交互式设置 root 密码**，请照做（见下方"无密码陷阱"，
-   不要用 `--no-root-passwd`）。
-4. 重启（拔掉引导介质，从员工机内置硬盘启动），先用刚设的 root 登录，
-   再给普通用户设密码（本配置不含任何密码）：
-   `passwd mubimuba`（员工）、`passwd bumooby`（管理员）。
-5. 员工机上 mubimuba **没有 wheel（无 sudo）**；如需提权，把 `wheel`
-   加回 `hosts/mubimuba/users.nix` 的 mubimuba extraGroups。
-6. 员工机上需要哪些用户级应用，改 `home/employee.nix`。
-
-> **无密码陷阱（重要）**：本仓库的 `users.nix` / `users` 配置**不包含任何
-> 密码**（明文密码本就不该入库）。因此：
->
-> - 安装时若用 `--no-root-passwd`，root 也无密码——NixOS 默认禁止空密码
->   登录，结果**所有账户（root / mubimuba / bumooby）都登录不了**，只能
->   回到引导介质里 chroot 设密码（见下），非常麻烦。
-> - 正确做法：安装时交互设置 root 密码；或事先用
->   `openssl passwd -6` 生成哈希，在 `hosts/mubimuba/users.nix` 里给用户配
->   `initialHashedPassword`（仅首次激活生效，之后密码归 shadow 管理）。
->
-> 若已误用 `--no-root-passwd` 导致无法登录，恢复方法：
-> 从引导介质（移动硬盘系统）启动，挂载员工机分区到 `/mnt`，然后
-> `sudo nixos-enter --root /mnt`，在 chroot 里 `passwd root` /
-> `passwd mubimuba` / `passwd bumooby`，退出并重启。
-
 ## 注意事项 / 踩坑记录
 
 - **机器差异放 hosts/，共性放 modules/**：hostName、用户、蓝牙/podman
