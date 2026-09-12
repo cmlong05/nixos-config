@@ -1,17 +1,18 @@
-# NixOS 配置（多主机：nixos + mubimuba）
+# NixOS 配置（多主机：nixos + aiaves + mubimuba）
 
 使用 flakes + home-manager 的多主机 NixOS 配置仓库。
 
 | 主机 | 用途 | 用户 | 说明 |
 |------|------|------|------|
-| `nixos`（本机） | 作者日常机 | chen | 全功能：蓝牙 / podman / dsh 等 |
-| `mubimuba` | 员工机（同款硬件） | mubimuba（员工）+ bumooby（管理员） | 精简：无蓝牙 / podman / dsh；mubimuba 无 sudo |
+| `nixos` | 作者机 A（AMD + NVIDIA 3060，移动硬盘） | chen | 全功能：蓝牙 / podman / dsh / NVIDIA 驱动 |
+| `aiaves` | 作者机 B（Intel Core Ultra 9 285H，仅内显；**与 nixos 共用同一块移动硬盘**） | chen | 全功能：蓝牙 / podman / dsh；Intel 内显，不装 NVIDIA |
+| `mubimuba` | 员工机（同款硬件，内盘） | mubimuba（员工）+ bumooby（管理员） | 精简：无蓝牙 / podman / dsh；mubimuba 无 sudo |
 
 ## 目录结构
 
 ```
 nixos-config/
-├── flake.nix                    # 入口：inputs + 两主机 nixosConfigurations
+├── flake.nix                    # 入口：inputs + 三主机 nixosConfigurations
 ├── users/                       # 用户维度：账户 + home + 用户域共享模块
 │   ├── chen/                    # 作者
 │   │   ├── default.nix          # 账户属性 + home-manager.users.chen
@@ -29,9 +30,15 @@ nixos-config/
 │   ├── portable-ssd.nix         # chen 移动硬盘（fileSystems + swap）
 │   └── mubimuba-internal.nix    # 员工机内盘（⚠️ 装机时生成后填入）
 ├── hosts/                       # 主机维度
-│   ├── nixos/                   # 作者机
+│   ├── nixos/                   # 作者机 A（AMD + NVIDIA，移动硬盘）
 │   │   ├── default.nix          # 接线点（hostName=nixos）
-│   │   ├── hardware.nix         # 硬件探测（机级）
+│   │   ├── hardware.nix         # 硬件探测（kvm-amd + amd 微码）
+│   │   ├── users.nix            # 用户点名单（chen）
+│   │   ├── bluetooth.nix        # 本机开蓝牙
+│   │   └── virtualisation.nix   # 本机开 podman
+│   ├── aiaves/                  # 作者机 B（Intel 笔电，同一块移动硬盘）
+│   │   ├── default.nix          # 接线点（hostName=aiaves）
+│   │   ├── hardware.nix         # 硬件探测（kvm-intel + intel 微码）
 │   │   ├── users.nix            # 用户点名单（chen）
 │   │   ├── bluetooth.nix        # 本机开蓝牙
 │   │   └── virtualisation.nix   # 本机开 podman
@@ -39,13 +46,15 @@ nixos-config/
 │       ├── default.nix          # 接线点（hostName=mubimuba）
 │       ├── hardware.nix         # ⚠️ 模板，装机时重新生成
 │       └── users.nix            # 点名单（bumooby + mubimuba）
-└── shared/                      # 共享系统领域（两台机器一致的部分）
+└── shared/                      # 共享系统领域（各主机共用的机级模块）
     ├── boot.nix                 # systemd-boot + 内核钉版
     ├── networking.nix           # NetworkManager
     ├── nix.nix                  # 缓存源 / flakes / nh / allowUnfree
     ├── locale.nix               # 时区 / locale / fcitx5 / 字体
     ├── desktop.nix              # SDDM + Plasma 6 / Firefox / PipeWire / CUPS
-    ├── gpu.nix                  # NVIDIA 驱动
+    ├── gpu-common.nix           # 显卡通用部分（hardware.graphics.enable）
+    ├── gpu-nvidia.nix           # NVIDIA 独显（nixos / mubimuba）
+    ├── gpu-intel.nix            # Intel 内显（aiaves）
     ├── flatpak.nix              # Flatpak 共享应用（Vivaldi/微信）
     └── packages.nix             # 系统级共享软件包
 ```
@@ -53,16 +62,17 @@ nixos-config/
 ## 常用命令
 
 ```bash
-# 本机（作者机）应用配置（系统 + home-manager 一起生效）
-nh os switch            # 默认按 hostname 取 nixos 配置
+# 本机应用配置（系统 + home-manager 一起生效；按 hostname 自动取对应 host）
+nh os switch
 
-# 指定主机（如员工机）
+# 指定主机（员工机 / 另一台作者机）
 nh os switch --flake .#mubimuba
+nh os switch --flake .#aiaves
 
 # 更新锁定输入
 nix flake update
 
-# 校验 flake（两主机全部求值）
+# 校验 flake（三主机全部求值）
 nix flake check
 ```
 
@@ -73,8 +83,12 @@ nix flake check
 - **硬件配置拆两半**：`nixos-generate-config` 生成的文件里，挂载行
   （fileSystems/swapDevices）放 `disks/`（跟盘走），探测行（boot.*/hostPlatform）
   放 `hosts/<name>/hardware.nix`（跟机器走）。员工机装机时需重新生成并手工拆一次。
+- **两块作者机共用一块盘**：`nixos`（AMD+NVIDIA）与 `aiaves`（Intel）都导入
+  `disks/portable-ssd.nix`。在 Intel 笔电上要切到 `.#aiaves`，才会拿到 Intel 正确的
+  硬件配置（`kvm-intel`、intel 微码、不装 NVIDIA）；用 `.#nixos` 启动它会带着 AMD/NVIDIA 的包袱。
 - **内核钉版 7.1**：nvidia-open 595.71.05 与内核 7.2 不兼容（两台同款
   NVIDIA 3060），等驱动支持后再改回 `linuxPackages_latest`（boot.nix）。
+  ⚠️ 7.1 现已 EOL，这条目前会挡住 `nh os switch`（详见 `PORTABLE.md`）。
 - **缓存源**：USTC 镜像 2026-08 验证可用；SJTU 对新路径同步不及时，如遇
   HTTP/2 流中断报错可临时移除 SJTU 源。
 - 仓库锁定的 nixpkgs 分支为 `nixos-26.05`，home-manager 为 `release-26.05`，

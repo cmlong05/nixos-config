@@ -45,6 +45,8 @@
       nixosConfigurations = {
         # 作者日常机（hostname: nixos）
         nixos = mkHost ./hosts/nixos/default.nix;
+        # 作者的 Intel 笔电（hostname: aiaves，与 nixos 共用同一块移动硬盘）
+        aiaves = mkHost ./hosts/aiaves/default.nix;
         # 员工机（hostname: mubimuba，同款硬件）
         mubimuba = mkHost ./hosts/mubimuba/default.nix;
       };

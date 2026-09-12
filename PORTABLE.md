@@ -10,21 +10,33 @@
 chen 的 3 台机器共用同一块移动硬盘（同一份 `/`、同一份 `/home/chen`），**只有 GPU 不同**；
 员工机是独立安装（内盘、硬件固定，bumooby + mubimuba）。硬件差异必须与用户角色解耦。
 
-## A. 待修 bug（7 条，全部仍未修）
+## A. 待修 bug
+
+**已修（2026-09，随 `aiaves` host 与 GPU 拆分）**：
+
+- ~~#3 NVIDIA 配置写在**共享**层~~ → 已拆为 `shared/gpu-common.nix` + `gpu-nvidia.nix` + `gpu-intel.nix`，
+  各主机按自己显卡叠加：`nixos` / `mubimuba` 用 nvidia，`aiaves` 用 intel。
+- ~~#4 `WLR_DRM_DEVICES` 无效行~~ → 已随拆分删除（原因与替代写法留在 `shared/gpu-nvidia.nix` 注释里）。
+- ~~#1 `kvm-amd` 被带到 Intel 机 / #2 Intel 无微码~~ → 已由**主机拆分**解决：
+  `hosts/aiaves/hardware.nix` 用 `kvm-intel` + intel 微码，`hosts/nixos/hardware.nix` 保留
+  `kvm-amd` + amd 微码。**前提是这台 Intel 机切到 `.#aiaves`**；若仍用 `.#nixos` 启动它，报错依旧。
+
+**仍未修（3 条）**：
 
 | # | 位置 | 现象 | 修法 |
 |---|---|---|---|
-| 1 | `hosts/nixos/hardware.nix` 的 `boot.kernelModules = [ "kvm-amd" ]` | Intel 机上 `kvm_amd: CPU 0 isn't AMD`，`systemd-modules-load` 失败 | 删掉；需要 KVM 时按机器分别放 `kvm-intel`/`kvm-amd` |
-| 2 | `hosts/nixos/hardware.nix` 的 `hardware.cpu.amd.updateMicrocode`（只有 amd） | Intel 机上无微码更新（initrd 里只有 `amd-ucode`） | 移到共享层，`intel` 与 `amd` 两个微码**同时开**（各 CPU 只吃自己那份，代价仅 initrd 大几 MB） |
-| 3 | `shared/gpu.nix`（NVIDIA 配置写在**共享**层） | Intel 机也装整套 NVIDIA 用户态驱动（`nvidia-x11-*` 在闭包里） | 拆成 `gpu-common.nix` + `gpu-nvidia.nix` + `gpu-intel.nix`；NVIDIA 部分只给有 N 卡的机器/变体 |
-| 4 | `shared/gpu.nix:36` 的 `WLR_DRM_DEVICES` | 完全无效（KWin 不认 `WLR_` 前缀） | 删掉；确需固定 GPU 顺序时改用 `KWIN_DRM_DEVICES`，且**只能**放 NVIDIA 相关文件 |
 | 5 | `shared/boot.nix` 的 `boot.kernelPackages = pkgs.linuxPackages_7_1` | 内核 7.1 已 EOL → `nix flake check` / `nh os switch` **直接失败**（`linux 7.1 was removed...`） | 改回 `linuxPackages_latest`（需 nvidia 驱动支持 7.2），或换驱动策略解除钉版 |
-| 6 | 全仓库 | Intel 内显无 VA-API 硬解（`/run/opengl-driver/lib` 无 `iHD`/`vpl`），视频解码全靠 CPU | 共享层加 `hardware.graphics.extraPackages = [ intel-media-driver ]`（可选 `vpl-gpu-rt` / `intel-compute-runtime`） |
+| 6 | 全仓库 | Intel 内显无 VA-API 硬解（`/run/opengl-driver/lib` 无 `iHD`/`vpl`），视频解码全靠 CPU | 在 `shared/gpu-intel.nix` 取消注释 `hardware.graphics.extraPackages = [ intel-media-driver ]`（可选 `vpl-gpu-rt`） |
 | 7 | 隐式 | 固件开关靠生成文件里的 `mkDefault` 传递，重新生成硬件配置就可能变 | 共享层**显式**声明 `hardware.enableRedistributableFirmware = true` |
 
-## B. 待定决策：3 台机器怎么建模
+## B. 决策记录：3 台机器怎么建模
 
-**倾向结论：1 个 host（`hosts/nixos`）+ `specialisation`，不是 3 个 host。**
+**已定（2026-09）：采用"多 host 共享一块盘"，不用 `specialisation`。**
+`hosts/nixos`（AMD+NVIDIA）与 `hosts/aiaves`（Intel 笔电）各自一个 host，都导入
+`disks/portable-ssd.nix`（同一块移动硬盘）；换机器时 `nh os switch --flake .#<host>`。
+代价是换机要重建一次，换来的是每台机器拿到完全正确的硬件配置（见 A 里 #1/#2 的解决方式）。
+
+以下为**被取代**的原备选方案（`specialisation`），保留备查：
 
 - 基础系统保持**硬件无关**（任何机器插上必能进桌面）；`specialisation.nvidia` / `specialisation.intel`
   作为开机菜单变体，写在 `hosts/nixos/default.nix` 里。

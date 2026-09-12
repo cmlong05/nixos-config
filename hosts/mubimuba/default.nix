@@ -15,7 +15,8 @@
     ../../shared/nix.nix
     ../../shared/locale.nix
     ../../shared/desktop.nix
-    ../../shared/gpu.nix
+    ../../shared/gpu-common.nix
+    ../../shared/gpu-nvidia.nix
     ../../shared/flatpak.nix
     ../../shared/packages.nix
     # 用户点名单（bumooby 管理员 + mubimuba 员工）
