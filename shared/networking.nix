@@ -1,5 +1,5 @@
 # 网络：NetworkManager
-# 注意：hostName 属于机器差异，在各主机配置里设置（hosts/<name>/configuration.nix）
+# 注意：hostName 属于机器差异，在各主机配置里设置（hosts/<name>/default.nix）
 { config, pkgs, ... }:
 
 {

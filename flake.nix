@@ -44,9 +44,9 @@
     {
       nixosConfigurations = {
         # 作者日常机（hostname: nixos）
-        nixos = mkHost ./hosts/nixos/configuration.nix;
+        nixos = mkHost ./hosts/nixos/default.nix;
         # 员工机（hostname: mubimuba，同款硬件）
-        mubimuba = mkHost ./hosts/mubimuba/configuration.nix;
+        mubimuba = mkHost ./hosts/mubimuba/default.nix;
       };
     };
 }

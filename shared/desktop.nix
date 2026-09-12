@@ -23,7 +23,7 @@
     policies.Homepage.StartPage = "previous-session";
   };
 
-  # 浏览器：Chromium（经 home-manager 安装，见 home/modules/apps.nix）
+  # 浏览器：Chromium（经 home-manager 安装，见 users/modules/apps.nix）
   # 重启后恢复上次会话
   environment.etc."chromium/policies/recommended/restore-session.json".text = ''
     { "RestoreOnStartup": 1 }

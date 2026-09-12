@@ -3,9 +3,9 @@
 
 {
   imports = [
-    ./modules/shell.nix
-    ./modules/apps.nix
-    ./modules/llm.nix
+    ../modules/shell.nix
+    ../modules/apps.nix
+    ../modules/llm.nix
   ];
 
   # 无需手写 home.username / home.homeDirectory：本文件经 home-manager.users.chen

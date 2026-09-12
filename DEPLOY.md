@@ -58,12 +58,13 @@ sudo cp /mnt/etc/nixos/hardware-configuration.nix /tmp/hw-chen-generated.nix
 sudo rm -rf /mnt/etc/nixos
 sudo mkdir -p /mnt/etc/nixos
 sudo cp -a ~/nixos-config/. /mnt/etc/nixos/
-# 用新生成的 hardware-configuration.nix 覆盖原始的
-sudo cp /tmp/hw-chen-generated.nix /mnt/etc/nixos/hosts/mubimuba/hardware-configuration.nix
+# 把生成的硬件配置拆成两份（不再覆盖单个 hardware-configuration.nix）：
+#   - 挂载行（fileSystems + swapDevices）→ disks/mubimuba-internal.nix
+#   - 探测行（boot.* / hostPlatform / 微码 / imports not-detected）→ hosts/mubimuba/hardware.nix
+# 建议把 /tmp/hw-chen-generated.nix 交给 AI，让它按上述两处覆盖。
 
-# 确认 flake 结构与模板已替换
-ls /mnt/etc/nixos/flake.nix /mnt/etc/nixos/hosts/mubimuba/configuration.nix /mnt/etc/nixos/hosts/mubimuba/hardware-configuration.nix
-head -3 /mnt/etc/nixos/hosts/mubimuba/hardware-configuration.nix
+# 确认 flake 结构与拆分结果
+ls /mnt/etc/nixos/flake.nix /mnt/etc/nixos/hosts/mubimuba/default.nix /mnt/etc/nixos/hosts/mubimuba/hardware.nix /mnt/etc/nixos/disks/mubimuba-internal.nix
 
 3. `nixos-install --flake /mnt/etc/nixos#mubimuba`。
    安装过程中会交互式设置用户密码，请照做（不要用 `--no-root-passwd` 会导致没有密码无法进入系统）。
@@ -73,5 +74,5 @@ head -3 /mnt/etc/nixos/hosts/mubimuba/hardware-configuration.nix
 
 
 5. 员工机上 mubimuba **没有 wheel（无 sudo）**；如需提权，把 `wheel`
-   加回 `hosts/mubimuba/users.nix` 的 mubimuba extraGroups。
-6. 员工机上需要哪些用户级应用，改 `home/employee.nix`。
+   加回 `users/mubimuba/default.nix` 的 mubimuba extraGroups。
+6. 员工机上需要哪些用户级应用，改 `users/mubimuba/home.nix`。

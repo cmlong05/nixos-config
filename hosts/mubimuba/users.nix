@@ -1,18 +1,10 @@
-# 员工机用户账户（主机 mubimuba）
-# - bumooby：管理员（wheel 用于维护）
-# - mubimuba：员工（无 wheel = 无 sudo，只有 networkmanager）
+# 主机 mubimuba 的用户点名单：只声明"这台机上有哪些用户"，不写账户属性。
+# 账户属性 + home 配置的唯一权威来源在 ../../users/<name>/default.nix。
 { ... }:
 
 {
-  users.users."bumooby" = {
-    isNormalUser = true;
-    description = "bumooby (admin)";
-    extraGroups = [ "networkmanager" "wheel" ];
-  };
-
-  users.users."mubimuba" = {
-    isNormalUser = true;
-    description = "mubimuba (employee)";
-    extraGroups = [ "networkmanager" ];
-  };
+  imports = [
+    ../../users/bumooby
+    ../../users/mubimuba
+  ];
 }

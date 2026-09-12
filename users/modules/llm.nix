@@ -11,7 +11,7 @@ in {
   ];
 
   # dsh web 开机自启（用户级 systemd 服务）
-  # - 用户 chen 已启用 linger（见 hosts/nixos/users.nix），因此用户实例在开机时即启动，
+  # - 用户 chen 已启用 linger（见 users/chen/default.nix），因此用户实例在开机时即启动，
   #   无需登录；本服务挂在 default.target 下随之自动运行。
   # - ExecStart 与手动执行的 `dsh web` 等价（dsh 的 bin 包装脚本即 node bin.js web）。
   # - 应用配置后请勿再手动 `dsh web`（会与 3080 端口冲突）：

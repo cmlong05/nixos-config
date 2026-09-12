@@ -1,12 +1,9 @@
-# 作者机用户账户（chen）
-# 用户级应用包见 ../../home/（home.nix），这里只保留账户属性。
+# 主机 nixos 的用户点名单：只声明"这台机上有哪些用户"，不写账户属性。
+# 账户属性 + home 配置的唯一权威来源在 ../../users/<name>/default.nix。
 { ... }:
 
 {
-  users.users."chen" = {
-    isNormalUser = true;
-    description = "chen";
-    linger = true;  # 保持用户实例在未登录时运行（dsh-web 等用户服务自启需要）
-    extraGroups = [ "networkmanager" "wheel" ];
-  };
+  imports = [
+    ../../users/chen
+  ];
 }
