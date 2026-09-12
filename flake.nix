@@ -1,5 +1,5 @@
 {
-  description = "NixOS configuration (multi-host: nixos + mubimuba)";
+  description = "NixOS configuration (multi-host: nixos + aiaves + mubimuba)";
 
   inputs = {
     nixpkgs.url = "git+https://mirrors.nju.edu.cn/git/nixpkgs.git?ref=nixos-26.05&shallow=1";
@@ -15,7 +15,8 @@
     inputs@{ nixpkgs, nixpkgs-unstable, nix-flatpak, llm-agents, home-manager, ... }:
     let
       system = "x86_64-linux";
-      # unstable 的包集合：仅用于 packages.nix 里的个别软件，保持与系统 26.05 隔离
+      # unstable 的包集合：供个别需要新版本的包使用（如 safeeyes），
+      # 与系统 26.05 隔离；NixOS 模块与 home-manager 模块都能拿到。
       pkgs-unstable = import nixpkgs-unstable {
         inherit system;
         config.allowUnfree = true;
@@ -28,7 +29,7 @@
         {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
-          home-manager.extraSpecialArgs = { inherit inputs; };
+          home-manager.extraSpecialArgs = { inherit inputs pkgs-unstable; };
         }
       ];
 
