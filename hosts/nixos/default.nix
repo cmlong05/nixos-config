@@ -1,6 +1,7 @@
 # 主机 nixos（作者日常机，移动硬盘安装）
 # 接线点：身份(hardware.nix) + 挂载(disks) + 系统领域(shared) + 用户点名单(users.nix)
-{ config, pkgs, ... }:
+# 这里不放应用：系统级基础工具在 shared/packages.nix，chen 个人的应用在 users/chen/。
+{ ... }:
 
 {
   imports = [
@@ -26,17 +27,6 @@
   ];
 
   networking.hostName = "nixos"; # 作者机主机名
-
-  # 作者机专属软件（员工机不需要）：已从共享 shared/packages.nix 中移出
-  environment.systemPackages = with pkgs; [
-    vim
-    li-ri
-  ];
-  # 作者机专属 flatpak 应用（员工机不需要）：已从共享 shared/flatpak.nix 中移出
-  services.flatpak.packages = [
-    "com.tux4kids.tuxmath"
-    "com.qq.QQ"
-  ];
 
   system.stateVersion = "26.05"; # Did you read the comment?
 }

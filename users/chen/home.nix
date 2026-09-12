@@ -6,6 +6,9 @@
     ../modules/shell.nix
     ../modules/apps.nix
     ../modules/llm.nix
+    # 仅 chen 个人的应用（不与员工共用）
+    ./apps.nix
+    ./flatpak.nix
   ];
 
   # 无需手写 home.username / home.homeDirectory：本文件经 home-manager.users.chen

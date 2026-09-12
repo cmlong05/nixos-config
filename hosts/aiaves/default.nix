@@ -1,7 +1,8 @@
 # 主机 aiaves（chen 的 Intel 笔电：Core Ultra 9 285H + 内显 i915）
 # 与 host nixos 并存，共用同一块移动硬盘（disks/portable-ssd.nix）。
 # 接线点：身份(hardware.nix) + 挂载(disks) + 系统领域(shared) + 用户点名单(users.nix)
-{ config, pkgs, ... }:
+# 这里不放应用：系统级基础工具在 shared/packages.nix，chen 个人的应用在 users/chen/。
+{ ... }:
 
 {
   imports = [
@@ -28,16 +29,6 @@
   ];
 
   networking.hostName = "aiaves"; # 本机主机名
-
-  # chen 的个人软件（与 nixos 对齐）
-  environment.systemPackages = with pkgs; [
-    vim
-    li-ri
-  ];
-  services.flatpak.packages = [
-    "com.tux4kids.tuxmath"
-    "com.qq.QQ"
-  ];
 
   system.stateVersion = "26.05";
 }

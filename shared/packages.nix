@@ -1,9 +1,14 @@
-# 系统级软件包（两台机器共享的部分）
+# 系统级软件包（各主机共享的机级基础软件）
+#
+# 判据：这里放"**机器**需要"而不是"某个人需要"的东西 —— 尤其是 root/sudo
+# 也要能用、或救援 TTY / 登录前就要有的工具。
+# 某个人自己的应用请放用户维度（users/<name>/），别放这里，也别放 host。
 { config, pkgs, pkgs-unstable, ... }:
 
 let
   # 常规软件：来自 nixos-26.05 稳定分支
   stablePackages = with pkgs; [
+    vim              # root/sudo 改配置、救援 TTY 都要用 → 系统级
     git
     python3
     wireguard-tools

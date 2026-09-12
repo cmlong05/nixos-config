@@ -20,12 +20,14 @@ chen 的 3 台机器共用同一块移动硬盘（同一份 `/`、同一份 `/ho
 - ~~#1 `kvm-amd` 被带到 Intel 机 / #2 Intel 无微码~~ → 已由**主机拆分**解决：
   `hosts/aiaves/hardware.nix` 用 `kvm-intel` + intel 微码，`hosts/nixos/hardware.nix` 保留
   `kvm-amd` + amd 微码。**前提是这台 Intel 机切到 `.#aiaves`**；若仍用 `.#nixos` 启动它，报错依旧。
+- ~~#5 内核钉 7.1 已 EOL，导致所有 host 无法重建~~ → 已改为发行版默认 `pkgs.linuxPackages`（**6.18.50**），
+  并**实测 `nvidia-x11-595.71.05` 在 6.18.50 上编译通过**——README 记的 `os-interface.c strncpy`
+  是 **7.2 特有**的，6.18 上没有。三主机完整求值通过，内核这条阻塞已解除。
 
-**仍未修（3 条）**：
+**仍未修（2 条）**：
 
 | # | 位置 | 现象 | 修法 |
 |---|---|---|---|
-| 5 | `shared/boot.nix` 的 `boot.kernelPackages = pkgs.linuxPackages_7_1` | 内核 7.1 已 EOL → `nix flake check` / `nh os switch` **直接失败**（`linux 7.1 was removed...`） | 改回 `linuxPackages_latest`（需 nvidia 驱动支持 7.2），或换驱动策略解除钉版 |
 | 6 | 全仓库 | Intel 内显无 VA-API 硬解（`/run/opengl-driver/lib` 无 `iHD`/`vpl`），视频解码全靠 CPU | 在 `shared/gpu-intel.nix` 取消注释 `hardware.graphics.extraPackages = [ intel-media-driver ]`（可选 `vpl-gpu-rt`） |
 | 7 | 隐式 | 固件开关靠生成文件里的 `mkDefault` 传递，重新生成硬件配置就可能变 | 共享层**显式**声明 `hardware.enableRedistributableFirmware = true` |
 
