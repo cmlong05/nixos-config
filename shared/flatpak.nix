@@ -10,7 +10,7 @@ in
 {
   services.flatpak = {
     enable = true;
-    # 两台机器共用的应用。作者机个人应用（如 tuxmath）在 hosts/nixos 追加。
+    # 共用的应用。作者机个人应用（如 tuxmath）在 hosts/nixos 追加。
     packages = [
       "com.vivaldi.Vivaldi"
       "com.tencent.WeChat"
