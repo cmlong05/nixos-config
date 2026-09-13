@@ -3,7 +3,8 @@
 
 {
   imports = [
-    ../hardware/probe-portable-chen.nix
+    ../hardware/storage-usb.nix
+    ../hardware/storage-nvme.nix
     ../hardware/common.nix
     ../hardware/cpu-amd.nix
     ../hardware/gpu-amd-vega.nix          # 核显（内核自动驱动，留档）

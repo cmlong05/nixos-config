@@ -3,7 +3,7 @@
 
 {
   imports = [
-    ../hardware/probe-msi-wd.nix          # 探测（内盘，固定 AMD）
+    ../hardware/storage-nvme.nix          # 读盘（内盘 NVMe）
     ../hardware/common.nix
     ../hardware/cpu-amd.nix
     ../hardware/gpu-nvidia.nix

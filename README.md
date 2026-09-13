@@ -42,8 +42,8 @@ nixos-config/
 │   ├── gpu-nvidia.nix           # NVIDIA 独显
 │   ├── gpu-intel.nix            # Intel 内显
 │   ├── gpu-amd-vega.nix         # AMD 核显（占位）
-│   ├── probe-portable-chen.nix  # 探测（便携盘，硬件无关）
-│   ├── probe-msi-wd.nix         # 探测（员工机，固定 AMD）
+│   ├── storage-usb.nix          # 读盘（USB）
+│   ├── storage-nvme.nix         # 读盘（NVMe）
 │   ├── bluetooth.nix            # 蓝牙
 │   └── wifi.nix                 # wifi（占位）
 ├── os-disk/                     # OS 维度：一个子目录 = 一次安装
@@ -102,13 +102,12 @@ nix flake check
   - 某个人自己的 → `users/<name>/`：Nix 包放 `apps.nix`，Flatpak 放 `flatpak.nix`
     （经 nix-flatpak 的 home-manager 模块以 `--user` 安装，跟人走，别的机器拿不到）；
   - `os-disk/<name>/default.nix` **只做接线，不放任何应用**。
-- **硬件配置拆两半**：`nixos-generate-config` 生成的文件里，挂载行
-  （fileSystems/swapDevices）放 `os-disk/<name>/disk.nix`（跟盘走），探测行（boot.*/hostPlatform）
-  放 `hardware/<name>.nix`（跟机器走）。员工机装机时需重新生成并手工拆一次。
-  ⚠️ 便携盘的 `hardware/probe-portable-chen.nix` 必须保持**硬件无关**——不能出现
-  `kvm-amd`/`kvm-intel`、微码之类机器专属项，否则换机器就出问题。
+- **硬件配置拆到原子**：`nixos-generate-config` 生成的文件里，挂载行
+  （fileSystems/swapDevices）放 `os-disk/<name>/disk.nix`（跟盘走），读盘模块放
+  `hardware/storage-*.nix`，hostPlatform / not-detected 放 `hardware/common.nix`，
+  kvm 交给自动加载（不写死）。员工机装机时需重新生成并手工拆一次。
 - **便携盘用 specialisation，不用多 host**：`os-disk/portable-chen` 的基础系统硬件无关
-  （`hardware/probe-portable-chen.nix` 不写死 kvm-*，intel/amd 微码在兜底 base 都开），
+  （不写死 kvm-*，intel/amd 微码在兜底 base 都开），
   插到任何机器都能进桌面；`chen-desktop` / `chen-laptop-amd` / `chen-laptop-intel` 是**开机菜单里的机器变体**，换机器零命令。
   ⚠️ 两个代价：(1) 每个变体多出一份系统闭包（共享的包不重复，额外≈差异部分）；
   (2) `nh os switch` 之后默认项会**回到基础系统**，要留在变体上得加 `-s <机器>`。

@@ -3,8 +3,9 @@
 
 {
   imports = [
-    ../hardware/probe-portable-chen.nix   # 探测（便携盘，硬件无关）
-    ../hardware/common.nix                # 底座（图形 + 固件）
+    ../hardware/storage-usb.nix           # 读盘（USB 根盘）
+    ../hardware/storage-nvme.nix          # 读盘（内盘 NVMe）
+    ../hardware/common.nix                # 底座（图形 + 固件 + 架构）
     ../hardware/cpu-amd.nix               # 微码
     ../hardware/gpu-nvidia.nix            # NVIDIA 3060
     ../hardware/bluetooth.nix

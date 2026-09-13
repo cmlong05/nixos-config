@@ -3,7 +3,8 @@
 
 {
   imports = [
-    ../hardware/probe-portable-chen.nix
+    ../hardware/storage-usb.nix
+    ../hardware/storage-nvme.nix
     ../hardware/common.nix
     ../hardware/cpu-intel.nix
     ../hardware/gpu-intel.nix

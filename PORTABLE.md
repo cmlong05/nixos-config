@@ -2,7 +2,7 @@
 
 > 精简自早期计划稿（实测时间 2026-09-12，Intel 笔记本从移动硬盘启动本仓库系统）。
 > 路径已对齐 2026-09 目录重构：`modules/`→`shared/`、`home/`→`users/`、
-> `configuration.nix`→`default.nix`、`hardware-configuration.nix` 拆为 `os-disk/<name>/disk.nix` + `hardware/probe-*.nix`。
+> `configuration.nix`→`default.nix`、`hardware-configuration.nix` 拆为 `os-disk/<name>/disk.nix` + `hardware/storage-*.nix` 等原子。
 > 本文件只保留**待修 bug、待定决策、以及避免重踩的硬事实**；原稿的实测过程与逐节方案已删除。
 
 ## 背景
@@ -15,7 +15,7 @@ chen 的 3 台机器共用同一块移动硬盘（同一份 `/`、同一份 `/ho
 **已修（2026-09）**：
 
 - ~~#1 `kvm-amd` 被带到 Intel 机~~ / ~~#2 只有 amd 微码~~ → 便携盘改为**硬件无关**：
-  `hardware/probe-portable-chen.nix` 不再写死任何 `kvm-*`（KVM 模块按需自动加载），
+  便携盘不再写死任何 `kvm-*`（KVM 模块按需自动加载），
   intel / amd **两个微码分别在 `hardware/cpu-intel.nix` / `cpu-amd.nix`（兜底 base 都 import）**。
 - ~~#3 NVIDIA 配置写在共享层~~ → 拆成 `hardware/gpu-nvidia.nix` / `hardware/gpu-intel.nix`；
   与厂商无关的部分（图形底座 + 固件）在 `hardware/common.nix`，微码拆到 `cpu-amd.nix` / `cpu-intel.nix`。
