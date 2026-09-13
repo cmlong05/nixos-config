@@ -1,6 +1,6 @@
 # 盘：chen 的移动硬盘（3 台机器共用同一块盘）—— 本 os-disk 的「盘」部分
 # 只放"跟盘走"的行：fileSystems + swapDevices（按 UUID，随盘不随机）。
-# 硬件探测见 hardware/portable-chen.nix。
+# 硬件探测见 hardware/probe-portable-chen.nix。
 { ... }:
 
 {

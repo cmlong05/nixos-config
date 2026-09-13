@@ -10,7 +10,7 @@
 {
   imports = [
     # 硬件：探测（硬件无关）+ 底座 + 蓝牙
-    ../../hardware/portable-chen.nix     # 便携盘探测（硬件无关，可跨机器）
+    ../../hardware/probe-portable-chen.nix     # 便携盘探测（硬件无关，可跨机器）
     ../../hardware/common.nix    # 图形底座 + 固件 + 双微码（厂商无关）
     ../../hardware/bluetooth.nix # 蓝牙能力
     # 系统服务（本安装特有）

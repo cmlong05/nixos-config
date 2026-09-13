@@ -15,7 +15,7 @@ chen 的 3 台机器共用同一块移动硬盘（同一份 `/`、同一份 `/ho
 **已修（2026-09）**：
 
 - ~~#1 `kvm-amd` 被带到 Intel 机~~ / ~~#2 只有 amd 微码~~ → 便携盘改为**硬件无关**：
-  `hardware/portable-chen.nix` 不再写死任何 `kvm-*`（KVM 模块按需自动加载），
+  `hardware/probe-portable-chen.nix` 不再写死任何 `kvm-*`（KVM 模块按需自动加载），
   intel / amd **两个微码都在 `hardware/common.nix` 同时开**。
 - ~~#3 NVIDIA 配置写在共享层~~ → 拆成 `hardware/gpu-nvidia.nix` / `hardware/gpu-intel.nix`；
   与厂商无关的部分（图形底座 + 固件 + 双微码）统一在 `hardware/common.nix`。

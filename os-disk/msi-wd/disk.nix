@@ -4,7 +4,7 @@
 #   nixos-generate-config --root /mnt
 # 然后把生成的 hardware-configuration.nix 拆成两份：
 #   - fileSystems + swapDevices 覆盖本文件
-#   - 其余（boot.*、hostPlatform 等）覆盖 hardware/msi-wd.nix
+#   - 其余（boot.*、hostPlatform 等）覆盖 hardware/probe-msi-wd.nix
 # 再 nixos-install --flake .#msi-wd（详见 DEPLOY.md）
 { ... }:
 

@@ -34,8 +34,8 @@ nixos-config/
 │   ├── common.nix               # 硬件底座（图形 + 固件 + intel/amd 双微码）
 │   ├── gpu-nvidia.nix           # NVIDIA 独显（3 台 NVIDIA 机共用）
 │   ├── gpu-intel.nix            # Intel 内显（Intel 笔电）
-│   ├── portable-chen.nix        # 便携盘探测（硬件无关）
-│   ├── msi-wd.nix               # 员工机探测（固定 AMD）
+│   ├── probe-portable-chen.nix  # 探测：便携盘（硬件无关）
+│   ├── probe-msi-wd.nix         # 探测：员工机（固定 AMD）
 │   └── bluetooth.nix            # 蓝牙能力
 ├── os-disk/                   # OS 维度：一个子目录 = 一次安装（= 一份 OS + 它装的盘）
 │   ├── portable-chen/           # 便携盘系统（多台机器共用一块移动硬盘）
@@ -56,6 +56,20 @@ nixos-config/
     ├── flatpak.nix              # Flatpak 共享应用（Vivaldi/微信，系统级）
     └── packages.nix             # 系统级基础软件（含 vim —— root/救援也要用）
 ```
+
+## 机器 ↔ 硬件映射
+
+`hardware/` 里是**原子模块**（探测 / 驱动 / 能力），每台机器是这些模块的**组合**，接线发生在 `os-disk/<name>/default.nix`：
+
+| 机器 | CPU | GPU | 探测 | 驱动 | 能力 | 接线 |
+|---|---|---|---|---|---|---|
+| chen 台式机 | AMD 3900X | NVIDIA 3060 | `probe-portable-chen` | `gpu-nvidia` | 蓝牙 | `specialisation.nvidia` |
+| chen 笔记本 | AMD 4800H | NVIDIA 3060 | `probe-portable-chen` | `gpu-nvidia` | 蓝牙 | `specialisation.nvidia` |
+| chen Intel 笔记本 | Intel 285H | 仅内显 | `probe-portable-chen` | `gpu-intel` | 蓝牙 | `specialisation.intel` |
+| 员工机 | AMD 3600 | NVIDIA 3060 | `probe-msi-wd` | `gpu-nvidia` | — | 直接 import（无变体） |
+
+> 两台 NVIDIA 机（3900X 台式 + 4800H 笔记本）硬件配置相同，共用同一个 `specialisation.nvidia`。
+> 变体按"**GPU 类别**"分，不按"每台机器"分。
 
 ## 常用命令
 
@@ -92,10 +106,10 @@ nix flake check
 - **硬件配置拆两半**：`nixos-generate-config` 生成的文件里，挂载行
   （fileSystems/swapDevices）放 `os-disk/<name>/disk.nix`（跟盘走），探测行（boot.*/hostPlatform）
   放 `hardware/<name>.nix`（跟机器走）。员工机装机时需重新生成并手工拆一次。
-  ⚠️ 便携盘的 `hardware/portable-chen.nix` 必须保持**硬件无关**——不能出现
+  ⚠️ 便携盘的 `hardware/probe-portable-chen.nix` 必须保持**硬件无关**——不能出现
   `kvm-amd`/`kvm-intel`、微码之类机器专属项，否则换机器就出问题。
 - **便携盘用 specialisation，不用多 host**：`os-disk/portable-chen` 的基础系统硬件无关
-  （`hardware/portable-chen.nix` 不写死 kvm-*，intel/amd 微码在 `hardware/common.nix` 都开），
+  （`hardware/probe-portable-chen.nix` 不写死 kvm-*，intel/amd 微码在 `hardware/common.nix` 都开），
   插到任何机器都能进桌面；`nvidia` / `intel` 是**开机菜单里的变体**。换机器零命令。
   ⚠️ 两个代价：(1) 每个变体多出一份系统闭包（共享的包不重复，额外≈差异部分）；
   (2) `nh os switch` 之后默认项会**回到基础系统**，要留在变体上得加 `-s <变体>`。

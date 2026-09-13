@@ -6,7 +6,7 @@
 {
   imports = [
     # 硬件：探测（固定 AMD）+ 底座 + NVIDIA 驱动
-    ../../hardware/msi-wd.nix  # 员工机探测（装机时生成后拆入）
+    ../../hardware/probe-msi-wd.nix  # 员工机探测（装机时生成后拆入）
     ../../hardware/common.nix    # 图形底座 + 固件 + 双微码（厂商无关）
     ../../hardware/gpu-nvidia.nix
     # 挂载（跟盘走；员工机内盘）
