@@ -1,13 +1,9 @@
-# 员工机安装（msi-wd）—— 固定硬件 AMD 3600 + NVIDIA 3060
-# 接线点：硬件(hardware/machines.nix) + 挂载(disk.nix) + 系统领域(shared/) + 用户点名单(users.nix)
-# 注意：本机不开蓝牙、不开 podman（不 import 对应模块），hostName 为 msi-wd。
+# 员工机安装（msi-wd）—— 固定硬件，见 machines/employee-3600.nix
 { ... }:
 
-let
-  machines = import ../../hardware/machines.nix;
-in
 {
-  imports = machines.msi-wd ++ [
+  imports = [
+    ../../machines/employee-3600.nix        # 机器组合（探测 + 底座 + CPU + GPU）
     # 挂载（跟盘走；员工机内盘）
     ./disk.nix
     # 系统领域（各安装共用）
@@ -22,7 +18,7 @@ in
     ./users.nix
   ];
 
-  networking.hostName = "msi-wd"; # 员工机主机名（与 flake 配置名一致，方便 nh 按主机名取配置）
+  networking.hostName = "msi-wd";
 
-  system.stateVersion = "26.05"; # Did you read the comment?
+  system.stateVersion = "26.05";
 }

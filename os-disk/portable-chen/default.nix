@@ -1,17 +1,18 @@
-# 便携盘安装（portable-chen）—— AMD+NVIDIA 台式机 / Intel 笔电 共用这一块移动硬盘
+# 便携盘安装（portable-chen）—— 一次安装跨 3 台机器
 #
-# 接线点：硬件(hardware/machines.nix) + 挂载(disk.nix) + 系统领域(shared/) + 用户点名单(users.nix)
-# 这里不放应用：系统级基础工具在 shared/packages.nix，chen 个人的应用在 users/chen/。
-# 机器 ↔ 硬件组合的映射见 hardware/machines.nix。
+# 基础系统 = 硬件无关的最小兜底（探测 + 固件 + 双微码），任何机器都能进桌面；
+# 每台机器是一个 specialisation，指向 machines/ 里的完整组件组合。
 { ... }:
 
-let
-  machines = import ../../hardware/machines.nix;
-in
 {
-  imports = machines.portable-base ++ [
+  imports = [
+    # 兜底底座（硬件无关）
+    ../../hardware/probe-portable-chen.nix   # 探测（USB 启动）
+    ../../hardware/common.nix                # 图形 + 固件
+    ../../hardware/cpu-amd.nix               # 双微码（任何机器都能进）
+    ../../hardware/cpu-intel.nix
     # 系统服务（本安装特有）
-    ./virtualisation.nix         # podman
+    ./virtualisation.nix                     # podman
     # 挂载（跟盘走）
     ./disk.nix
     # 系统领域（各安装共用）
@@ -26,12 +27,12 @@ in
     ./users.nix
   ];
 
-  networking.hostName = "portable-chen"; # 便携盘用固定主机名（换机器不变）
+  networking.hostName = "portable-chen";
 
-  # 硬件变体：便携盘 3 台机器的差异只有 GPU（见 hardware/machines.nix）。
-  # inheritParentConfig 默认 true = 基础配置 + 这里的增量；不选变体就进基础系统（任何机器都能进桌面）。
-  specialisation.nvidia.configuration.imports = machines.nvidia;
-  specialisation.intel.configuration.imports  = machines.intel;
+  # 每台机器 = 一个命名变体（见 machines/）。inheritParentConfig 默认 true = 基础 + 机器组合。
+  specialisation.chen-desktop.configuration.imports      = [ ../../machines/chen-desktop.nix ];
+  specialisation.chen-laptop-amd.configuration.imports   = [ ../../machines/chen-laptop-amd.nix ];
+  specialisation.chen-laptop-intel.configuration.imports = [ ../../machines/chen-laptop-intel.nix ];
 
   system.stateVersion = "26.05";
 }

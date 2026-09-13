@@ -14,5 +14,5 @@
   boot.extraModulePackages = [ ];
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
-  # 微码不在这里：intel/amd 双微码已在 hardware/common.nix 统一开。
+  # 微码不在这里：在 cpu-amd.nix（员工机是 AMD）。
 }

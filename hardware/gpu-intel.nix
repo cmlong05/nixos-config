@@ -1,6 +1,6 @@
 # 显卡：Intel 内显（i915 / Arc）
 #
-# 用途：便携盘的 specialisation.intel（= 基础系统 + 本文件）。
+# 用途：chen-laptop-intel 机器的 GPU（经 machines/chen-laptop-intel.nix 引入）。
 # msi-wd 不用（它是 NVIDIA 机）。
 { pkgs, ... }:
 
