@@ -45,9 +45,9 @@
     {
       nixosConfigurations = {
         # 便携盘系统（AMD+NVIDIA 台式机 / Intel 笔电 共用，硬件差异走 specialisation）
-        nixos = mkHost ./host-disk/nixos/default.nix;
+        nixos = mkHost ./os-disk/nixos/default.nix;
         # 员工机（hostname: mubimuba，同款硬件）
-        mubimuba = mkHost ./host-disk/mubimuba/default.nix;
+        mubimuba = mkHost ./os-disk/mubimuba/default.nix;
       };
     };
 }

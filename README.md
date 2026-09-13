@@ -30,7 +30,7 @@ nixos-config/
 │       ├── shell.nix            # bash + direnv
 │       ├── apps.nix             # 用户级应用包
 │       └── llm.nix              # llm-agents 工具（dsh / reasonix，仅 chen）
-├── host-disk/                   # 主机+盘维度：一个子目录 = 一次安装（= 机器的身份 + 它的盘）
+├── os-disk/                   # OS 维度：一个子目录 = 一次安装（= 一份 OS + 它装的盘）
 │   ├── nixos/                   # 便携盘系统（多台机器共用一块移动硬盘）
 │   │   ├── default.nix          # 接线点（hostName=nixos）+ specialisation.nvidia / intel
 │   │   ├── hardware.nix         # 硬件探测（**硬件无关**：不写死 kvm-*、无微码）
@@ -79,19 +79,20 @@ nix flake check
 
 ## 注意事项 / 踩坑记录
 
-- **机器差异放 host-disk/，共性放 shared/**：hostName、用户点名单、蓝牙/podman
-  开关这类机器相关配置都在 `host-disk/<name>/` 下，不要写进共享模块。
+- **每份安装自己的东西放 os-disk/，共性放 shared/**：hostName、用户点名单、蓝牙/podman、
+  盘挂载（`disk.nix`）都在 `os-disk/<name>/` 下，不要写进共享模块。
+  跨机器**可变**的硬件差异（如 GPU）走 `specialisation`，不在这里。
 - **应用放哪，判据是"机器要"还是"人要"**：
   - 机器要（root/sudo、救援 TTY 也要能用的，如 `vim`）→ `shared/packages.nix`；
   - 某个人自己的 → `users/<name>/`：Nix 包放 `apps.nix`，Flatpak 放 `flatpak.nix`
     （经 nix-flatpak 的 home-manager 模块以 `--user` 安装，跟人走，别的机器拿不到）；
-  - `host-disk/<name>/default.nix` **只做接线，不放任何应用**。
+  - `os-disk/<name>/default.nix` **只做接线，不放任何应用**。
 - **硬件配置拆两半**：`nixos-generate-config` 生成的文件里，挂载行
-  （fileSystems/swapDevices）放 `host-disk/<name>/disk.nix`（跟盘走），探测行（boot.*/hostPlatform）
-  放 `host-disk/<name>/hardware.nix`。员工机装机时需重新生成并手工拆一次。
-  ⚠️ 便携盘的 `host-disk/nixos/hardware.nix` 必须保持**硬件无关**——不能出现
+  （fileSystems/swapDevices）放 `os-disk/<name>/disk.nix`（跟盘走），探测行（boot.*/hostPlatform）
+  放 `os-disk/<name>/hardware.nix`。员工机装机时需重新生成并手工拆一次。
+  ⚠️ 便携盘的 `os-disk/nixos/hardware.nix` 必须保持**硬件无关**——不能出现
   `kvm-amd`/`kvm-intel`、微码之类机器专属项，否则换机器就出问题。
-- **便携盘用 specialisation，不用多 host**：`host-disk/nixos` 的基础系统硬件无关
+- **便携盘用 specialisation，不用多 host**：`os-disk/nixos` 的基础系统硬件无关
   （不写死 kvm-*，intel/amd 微码都开、固件显式声明），插到任何机器都能进桌面；
   `nvidia` / `intel` 是**开机菜单里的变体**。换机器零命令。
   ⚠️ 两个代价：(1) 每个变体是一份**完整系统闭包**（GB 级），store 占用翻倍；

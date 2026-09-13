@@ -2,7 +2,7 @@
 
 > 精简自早期计划稿（实测时间 2026-09-12，Intel 笔记本从移动硬盘启动本仓库系统）。
 > 路径已对齐 2026-09 目录重构：`modules/`→`shared/`、`home/`→`users/`、
-> `configuration.nix`→`default.nix`、`hardware-configuration.nix` 拆为 `host-disk/<name>/disk.nix` + `hardware.nix`。
+> `configuration.nix`→`default.nix`、`hardware-configuration.nix` 拆为 `os-disk/<name>/disk.nix` + `hardware.nix`。
 > 本文件只保留**待修 bug、待定决策、以及避免重踩的硬事实**；原稿的实测过程与逐节方案已删除。
 
 ## 背景
@@ -15,7 +15,7 @@ chen 的 3 台机器共用同一块移动硬盘（同一份 `/`、同一份 `/ho
 **已修（2026-09）**：
 
 - ~~#1 `kvm-amd` 被带到 Intel 机~~ / ~~#2 只有 amd 微码~~ → 便携盘改为**硬件无关**：
-  `host-disk/nixos/hardware.nix` 不再写死任何 `kvm-*`（KVM 模块按需自动加载），
+  `os-disk/nixos/hardware.nix` 不再写死任何 `kvm-*`（KVM 模块按需自动加载），
   intel / amd **两个微码都在 `shared/hardware-common.nix` 同时开**。
 - ~~#3 NVIDIA 配置写在共享层~~ → 拆成 `shared/gpu-nvidia.nix` / `gpu-intel.nix`；
   与厂商无关的部分（图形底座 + 固件 + 双微码）统一在 `shared/hardware-common.nix`。
@@ -39,8 +39,8 @@ chen 的 3 台机器共用同一块移动硬盘（同一份 `/`、同一份 `/ho
   同一块盘的挂载。代价不可接受：换机器必须在**那台机器上**
   `nh os switch --flake .#<host>`；而且菜单里"另一台"的条目只是**最后一次激活时的过期快照**
   ——菜单能让你"回到过去"，但切不到"另一台的当前配置"。
-- 现改为 **1 个 host（`host-disk/nixos`）+ 开机变体**：基础系统**硬件无关**，插到任何机器都能进桌面；
-  `specialisation.nvidia` / `specialisation.intel` 写在 `host-disk/nixos/default.nix`。
+- 现改为 **1 个 host（`os-disk/nixos`）+ 开机变体**：基础系统**硬件无关**，插到任何机器都能进桌面；
+  `specialisation.nvidia` / `specialisation.intel` 写在 `os-disk/nixos/default.nix`。
   换机器**零命令**，且所有变体每次 switch 一起重建、**永远同步**。
 - 采用 **方案 A**（基础=硬件无关，而非完整 NVIDIA）：保证"未知机器插上必能进桌面"。
   代价是 AMD+NVIDIA 台式机默认走 nouveau，要手动选 `nvidia` 变体。
