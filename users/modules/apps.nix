@@ -1,7 +1,5 @@
-# 用户级应用包（chen 与员工共用）
+# 用户级应用包（所有用户共用）
 #
-# 判据：这里放「**人**要用」的应用 —— 两个用户共用的放这里；
-# 只有某个人要的放 users/<name>/apps.nix。
 # home-manager 用全局 pkgs（useGlobalPkgs = true），不再单独取 nixpkgs。
 { config, pkgs, pkgs-unstable, ... }:
 

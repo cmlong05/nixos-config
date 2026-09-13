@@ -6,7 +6,7 @@
     ../modules/shell.nix
     ../modules/apps.nix
     ../modules/llm.nix
-    # 仅 chen 个人的应用（不与员工共用）
+    # 仅 chen 个人的应用
     ./apps.nix
     ./flatpak.nix
   ];

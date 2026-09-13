@@ -1,4 +1,4 @@
-# Flatpak 基础：共享应用（作者机与员工机都需要）+ flathub 镜像
+# Flatpak 基础：共享应用 + flathub 镜像
 { pkgs, ... }:
 let
   # flathub 的 GPG 签名公钥（镜像与官方字节一致，sha256 相同）。
@@ -10,11 +10,10 @@ in
 {
   services.flatpak = {
     enable = true;
-    # 共用的应用（两台机器都要）。作者机个人应用（QQ / tuxmath）见 users/chen/flatpak.nix。
+    # 共用的应用（两台机器都要）
     packages = [
       "com.vivaldi.Vivaldi"
       "com.tencent.WeChat"
-      # "com.spotify.Client"
     ];
 
     remotes = [

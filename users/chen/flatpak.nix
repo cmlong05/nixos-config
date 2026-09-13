@@ -1,7 +1,7 @@
-# 仅 chen 个人的 Flatpak 应用（以 --user 安装，跟人走；员工机拿不到）
+# 仅 chen 个人的 Flatpak 应用
 #
 # 用 nix-flatpak 的 home-manager 模块（installation = "user"），与系统级的
-# shared/flatpak.nix（Vivaldi / 微信，两台机器都要）分开。
+# shared/flatpak.nix 分开。
 { pkgs, inputs, ... }:
 
 let
