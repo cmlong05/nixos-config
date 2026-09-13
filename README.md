@@ -30,19 +30,18 @@ nixos-config/
 │       ├── shell.nix            # bash + direnv
 │       ├── apps.nix             # 用户级应用包
 │       └── llm.nix              # llm-agents 工具（dsh / reasonix，仅 chen）
-├── disks/                       # 硬盘维度：只放"跟盘走"的挂载行
-│   ├── portable-ssd.nix         # chen 移动硬盘（fileSystems + swap）
-│   └── mubimuba-internal.nix    # 员工机内盘（⚠️ 装机时生成后填入）
-├── hosts/                       # 主机维度
+├── host-disk/                   # 主机+盘维度：一个子目录 = 一次安装（= 机器的身份 + 它的盘）
 │   ├── nixos/                   # 便携盘系统（多台机器共用一块移动硬盘）
 │   │   ├── default.nix          # 接线点（hostName=nixos）+ specialisation.nvidia / intel
 │   │   ├── hardware.nix         # 硬件探测（**硬件无关**：不写死 kvm-*、无微码）
+│   │   ├── disk.nix             # 挂载（fileSystems + swap，跟盘走）
 │   │   ├── users.nix            # 用户点名单（chen）
 │   │   ├── bluetooth.nix        # 开蓝牙
 │   │   └── virtualisation.nix   # 开 podman
 │   └── mubimuba/                # 员工机（独立安装，硬件固定）
 │       ├── default.nix          # 接线点（hostName=mubimuba）
 │       ├── hardware.nix         # ⚠️ 模板，装机时重新生成
+│       ├── disk.nix             # ⚠️ 模板（内盘 UUID，装机时生成后填入）
 │       └── users.nix            # 点名单（bumooby + mubimuba）
 └── shared/                      # 共享系统领域（各主机共用的机级模块）
     ├── boot.nix                 # systemd-boot + 内核
@@ -80,19 +79,19 @@ nix flake check
 
 ## 注意事项 / 踩坑记录
 
-- **机器差异放 hosts/，共性放 shared/**：hostName、用户点名单、蓝牙/podman
-  开关这类机器相关配置都在 `hosts/<name>/` 下，不要写进共享模块。
+- **机器差异放 host-disk/，共性放 shared/**：hostName、用户点名单、蓝牙/podman
+  开关这类机器相关配置都在 `host-disk/<name>/` 下，不要写进共享模块。
 - **应用放哪，判据是"机器要"还是"人要"**：
   - 机器要（root/sudo、救援 TTY 也要能用的，如 `vim`）→ `shared/packages.nix`；
   - 某个人自己的 → `users/<name>/`：Nix 包放 `apps.nix`，Flatpak 放 `flatpak.nix`
     （经 nix-flatpak 的 home-manager 模块以 `--user` 安装，跟人走，别的机器拿不到）；
-  - `hosts/<name>/default.nix` **只做接线，不放任何应用**。
+  - `host-disk/<name>/default.nix` **只做接线，不放任何应用**。
 - **硬件配置拆两半**：`nixos-generate-config` 生成的文件里，挂载行
-  （fileSystems/swapDevices）放 `disks/`（跟盘走），探测行（boot.*/hostPlatform）
-  放 `hosts/<name>/hardware.nix`。员工机装机时需重新生成并手工拆一次。
-  ⚠️ 便携盘的 `hosts/nixos/hardware.nix` 必须保持**硬件无关**——不能出现
+  （fileSystems/swapDevices）放 `host-disk/<name>/disk.nix`（跟盘走），探测行（boot.*/hostPlatform）
+  放 `host-disk/<name>/hardware.nix`。员工机装机时需重新生成并手工拆一次。
+  ⚠️ 便携盘的 `host-disk/nixos/hardware.nix` 必须保持**硬件无关**——不能出现
   `kvm-amd`/`kvm-intel`、微码之类机器专属项，否则换机器就出问题。
-- **便携盘用 specialisation，不用多 host**：`hosts/nixos` 的基础系统硬件无关
+- **便携盘用 specialisation，不用多 host**：`host-disk/nixos` 的基础系统硬件无关
   （不写死 kvm-*，intel/amd 微码都开、固件显式声明），插到任何机器都能进桌面；
   `nvidia` / `intel` 是**开机菜单里的变体**。换机器零命令。
   ⚠️ 两个代价：(1) 每个变体是一份**完整系统闭包**（GB 级），store 占用翻倍；

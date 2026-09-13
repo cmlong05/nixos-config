@@ -1,5 +1,5 @@
 # 主机 mubimuba（员工机，同款硬件：AMD CPU + NVIDIA 3060）
-# 接线点：身份(hardware.nix) + 挂载(disks) + 系统领域(shared) + 用户点名单(users.nix)
+# 接线点：身份(hardware.nix) + 挂载(disk.nix) + 系统领域(shared) + 用户点名单(users.nix)
 # 注意：本机不开蓝牙、不开 podman（不 import 对应模块），hostName 为 mubimuba。
 { ... }:
 
@@ -8,7 +8,7 @@
     # 硬件探测（机级，装机时用 nixos-generate-config 生成后拆入）
     ./hardware.nix
     # 挂载（跟盘走；员工机内盘）
-    ../../disks/mubimuba-internal.nix
+    ./disk.nix
     # 共享系统领域（作者机与员工机一致的部分）
     ../../shared/boot.nix
     ../../shared/networking.nix

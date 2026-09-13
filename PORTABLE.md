@@ -2,7 +2,7 @@
 
 > 精简自早期计划稿（实测时间 2026-09-12，Intel 笔记本从移动硬盘启动本仓库系统）。
 > 路径已对齐 2026-09 目录重构：`modules/`→`shared/`、`home/`→`users/`、
-> `configuration.nix`→`default.nix`、`hardware-configuration.nix` 拆为 `disks/` + `hosts/*/hardware.nix`。
+> `configuration.nix`→`default.nix`、`hardware-configuration.nix` 拆为 `host-disk/<name>/disk.nix` + `hardware.nix`。
 > 本文件只保留**待修 bug、待定决策、以及避免重踩的硬事实**；原稿的实测过程与逐节方案已删除。
 
 ## 背景
@@ -15,7 +15,7 @@ chen 的 3 台机器共用同一块移动硬盘（同一份 `/`、同一份 `/ho
 **已修（2026-09）**：
 
 - ~~#1 `kvm-amd` 被带到 Intel 机~~ / ~~#2 只有 amd 微码~~ → 便携盘改为**硬件无关**：
-  `hosts/nixos/hardware.nix` 不再写死任何 `kvm-*`（KVM 模块按需自动加载），
+  `host-disk/nixos/hardware.nix` 不再写死任何 `kvm-*`（KVM 模块按需自动加载），
   intel / amd **两个微码都在 `shared/hardware-common.nix` 同时开**。
 - ~~#3 NVIDIA 配置写在共享层~~ → 拆成 `shared/gpu-nvidia.nix` / `gpu-intel.nix`；
   与厂商无关的部分（图形底座 + 固件 + 双微码）统一在 `shared/hardware-common.nix`。
@@ -35,16 +35,17 @@ chen 的 3 台机器共用同一块移动硬盘（同一份 `/`、同一份 `/ho
 
 **已定（2026-09）：采用 `specialisation`。**（先试过"多 host 共享一块盘"，已放弃。）
 
-- 一开始做的是多 host：`hosts/nixos`（AMD+NVIDIA）+ `hosts/aiaves`（Intel）都导入
-  `disks/portable-ssd.nix`。代价不可接受：换机器必须在**那台机器上**
+- 一开始做的是多 host：两个 host 目录（`nixos` = AMD+NVIDIA、`aiaves` = Intel）都导入
+  同一块盘的挂载。代价不可接受：换机器必须在**那台机器上**
   `nh os switch --flake .#<host>`；而且菜单里"另一台"的条目只是**最后一次激活时的过期快照**
   ——菜单能让你"回到过去"，但切不到"另一台的当前配置"。
-- 现改为 **1 个 host（`hosts/nixos`）+ 开机变体**：基础系统**硬件无关**，插到任何机器都能进桌面；
-  `specialisation.nvidia` / `specialisation.intel` 写在 `hosts/nixos/default.nix`。
+- 现改为 **1 个 host（`host-disk/nixos`）+ 开机变体**：基础系统**硬件无关**，插到任何机器都能进桌面；
+  `specialisation.nvidia` / `specialisation.intel` 写在 `host-disk/nixos/default.nix`。
   换机器**零命令**，且所有变体每次 switch 一起重建、**永远同步**。
 - 采用 **方案 A**（基础=硬件无关，而非完整 NVIDIA）：保证"未知机器插上必能进桌面"。
   代价是 AMD+NVIDIA 台式机默认走 nouveau，要手动选 `nvidia` 变体。
-- 已知代价：每个变体是一份**完整系统闭包**（GB 级）；`nh os switch` 后默认项会**回到基础系统**
+- 已知代价：每个变体多出一份自己的系统闭包（**共享的包不重复**，额外占用≈差异部分，nvidia 约 1 GB）；
+  `nh os switch` 后默认项会**回到基础系统**
   （要留在变体上得 `-s <变体>`）；**不要给不同变体配不同内核**。
 - 若将来某台机器的差异超出"显卡变体"的范围（例如需要不同的用户/服务），那才应该另开独立 host。
 
@@ -60,7 +61,7 @@ chen 的 3 台机器共用同一块移动硬盘（同一份 `/`、同一份 `/ho
 
 - **KWin 只认 `KWIN_DRM_DEVICES`**，不认 `WLR_DRM_DEVICES`（grep kwin 包实测，只有 `libkwin.so` 里带 `KWIN_DRM_DEVICES`）。
 - **选错变体不会变砖**：Intel 机带着整套 nvidia 驱动也能正常进桌面，最坏是驱动加载失败 + 日志噪音 + 性能退化。
-- **每个变体是一份完整系统闭包（GB 级）**；GC 时会被启动条目引用而保留 → 注意 store 占用。
+- **每个变体多出一份系统闭包**，但共享的包是同一份 store 路径（额外占用≈差异部分）；GC 时会被启动条目引用而保留。
 - **不要给不同变体配不同内核**（否则要编译两份内核）。
 - **BitLocker**：内盘 Windows 已加密，不要为双系统去改 BIOS 的 Secure Boot/TPM/启动顺序，否则要恢复密钥。
 - 日常命令：`bootctl status` 与 `sudo ls /boot/loader/entries` 查启动条目；

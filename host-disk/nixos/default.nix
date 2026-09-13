@@ -1,6 +1,6 @@
 # 便携盘 host（AMD+NVIDIA 台式机 / Intel 笔电 共用这一块移动硬盘）
 #
-# 接线点：身份(hardware.nix) + 挂载(disks) + 系统领域(shared) + 用户点名单(users.nix)
+# 接线点：身份(hardware.nix) + 挂载(disk.nix) + 系统领域(shared) + 用户点名单(users.nix)
 # 这里不放应用：系统级基础工具在 shared/packages.nix，chen 个人的应用在 users/chen/。
 #
 # 硬件差异不用「多 host」，而用 specialisation：基础系统硬件无关（插哪台都能进桌面），
@@ -15,7 +15,7 @@
     ./bluetooth.nix
     ./virtualisation.nix
     # 挂载（跟盘走）
-    ../../disks/portable-ssd.nix
+    ./disk.nix
     # 共享系统领域
     ../../shared/boot.nix
     ../../shared/networking.nix

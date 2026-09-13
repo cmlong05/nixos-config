@@ -1,6 +1,6 @@
-# 硬盘维度：chen 的移动硬盘（3 台机器共用同一块盘）
+# 盘：chen 的移动硬盘（3 台机器共用同一块盘）—— 本 host-disk 的「盘」部分
 # 只放"跟盘走"的行：fileSystems + swapDevices（按 UUID，随盘不随机）。
-# 硬件探测见 hosts/nixos/hardware.nix。
+# 硬件探测见同目录的 hardware.nix。
 { ... }:
 
 {

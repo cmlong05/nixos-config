@@ -1,10 +1,10 @@
 # ⚠️⚠️ 员工机内盘模板（勿直接使用！）⚠️⚠️
-# 本文件由作者机 portable-ssd.nix 复制而来，仅用于仓库求值/CI。
+# 本文件由作者机 disk.nix 复制而来，仅用于仓库求值/CI。
 # 员工机磁盘 UUID 与作者机必然不同，装 NixOS 时必须在员工机上执行：
 #   nixos-generate-config --root /mnt
 # 然后把生成的 hardware-configuration.nix 拆成两份：
 #   - fileSystems + swapDevices 覆盖本文件
-#   - 其余（boot.*、hostPlatform 等）覆盖 hosts/mubimuba/hardware.nix
+#   - 其余（boot.*、hostPlatform 等）覆盖同目录的 hardware.nix
 # 再 nixos-install --flake .#mubimuba（详见 DEPLOY.md）
 { ... }:
 

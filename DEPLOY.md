@@ -59,12 +59,12 @@ sudo rm -rf /mnt/etc/nixos
 sudo mkdir -p /mnt/etc/nixos
 sudo cp -a ~/nixos-config/. /mnt/etc/nixos/
 # 把生成的硬件配置拆成两份（不再覆盖单个 hardware-configuration.nix）：
-#   - 挂载行（fileSystems + swapDevices）→ disks/mubimuba-internal.nix
-#   - 探测行（boot.* / hostPlatform / 微码 / imports not-detected）→ hosts/mubimuba/hardware.nix
+#   - 挂载行（fileSystems + swapDevices）→ host-disk/mubimuba/disk.nix
+#   - 探测行（boot.* / hostPlatform / 微码 / imports not-detected）→ host-disk/mubimuba/hardware.nix
 # 建议把 /tmp/hw-chen-generated.nix 交给 AI，让它按上述两处覆盖。
 
 # 确认 flake 结构与拆分结果
-ls /mnt/etc/nixos/flake.nix /mnt/etc/nixos/hosts/mubimuba/default.nix /mnt/etc/nixos/hosts/mubimuba/hardware.nix /mnt/etc/nixos/disks/mubimuba-internal.nix
+ls /mnt/etc/nixos/flake.nix /mnt/etc/nixos/host-disk/mubimuba/default.nix /mnt/etc/nixos/host-disk/mubimuba/hardware.nix /mnt/etc/nixos/host-disk/mubimuba/disk.nix
 
 3. `nixos-install --flake /mnt/etc/nixos#mubimuba`。
    安装过程中会交互式设置用户密码，请照做（不要用 `--no-root-passwd` 会导致没有密码无法进入系统）。

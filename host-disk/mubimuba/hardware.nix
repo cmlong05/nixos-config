@@ -1,5 +1,5 @@
 # ⚠️⚠️ 员工机模板（勿直接使用！）⚠️⚠️
-# 装机时重新生成后覆盖（见 DEPLOY.md / disks/mubimuba-internal.nix 顶部注释）。
+# 装机时重新生成后覆盖（见 DEPLOY.md / 同目录 disk.nix 顶部注释）。
 { config, lib, modulesPath, ... }:
 
 {
