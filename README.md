@@ -118,6 +118,11 @@ nix flake check
   的条件：nvidia 驱动支持 7.2 之后（细节见 `shared/boot.nix` 注释）。
 - **缓存源**：USTC 镜像 2026-08 验证可用；SJTU 对新路径同步不及时，如遇
   HTTP/2 流中断报错可临时移除 SJTU 源。
+- **Go 依赖（reasonix）**：`llm-agents` 的 reasonix 走 `buildGoModule`，默认从
+  `proxy.golang.org` 拉取 Go 模块，国内直连超时（IPv6 i/o timeout）。已在
+  `users/modules/llm.nix` 用 `overrideModAttrs` 把 `GOPROXY` 换成 `goproxy.cn`，
+  并同时把 GOPROXY 从 `impureEnvVars` 移除——否则固定输出推导会以 nix-daemon
+  环境（未设置 GOPROXY）的空串覆盖它，又退回默认代理。
 - 仓库锁定的 nixpkgs 分支为 `nixos-26.05`，home-manager 为 `release-26.05`，
   两者需保持大版本一致。
 
