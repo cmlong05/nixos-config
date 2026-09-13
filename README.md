@@ -48,7 +48,8 @@ nixos-config/
 │   └── wifi.nix                 # wifi（占位）
 ├── os-disk/                     # OS 维度：一个子目录 = 一次安装
 │   ├── portable-chen/           # 便携盘（一次安装跨 3 台机器）
-│   │   ├── default.nix          # 接线点 + specialisation（chen-desktop / laptop-amd / laptop-intel）
+│   │   ├── default.nix          # 接线点（imports 拼装：硬件/盘/服务/用户/变体）
+│   │   ├── machine_spe.nix      # 机器变体（specialisation：chen-desktop / laptop-amd / laptop-intel）
 │   │   ├── disk.nix             # 挂载（fileSystems + swap，跟盘走）
 │   │   ├── users.nix            # 用户点名单（chen）
 │   │   └── virtualisation.nix   # podman

@@ -27,7 +27,7 @@
     # 用户点名单（chen）
     ./users.nix
     # 机器变体（specialisation）
-    ./machine_spe.nix.nix
+    ./machine_spe.nix
   ];
 
   networking.hostName = "portable-chen";
