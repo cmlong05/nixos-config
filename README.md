@@ -59,17 +59,7 @@ nixos-config/
 
 ## 机器 ↔ 硬件映射
 
-`hardware/` 里是**原子模块**（探测 / 驱动 / 能力），每台机器是这些模块的**组合**，接线发生在 `os-disk/<name>/default.nix`：
-
-| 机器 | CPU | GPU | 探测 | 驱动 | 能力 | 接线 |
-|---|---|---|---|---|---|---|
-| chen 台式机 | AMD 3900X | NVIDIA 3060 | `probe-portable-chen` | `gpu-nvidia` | 蓝牙 | `specialisation.nvidia` |
-| chen 笔记本 | AMD 4800H | NVIDIA 3060 | `probe-portable-chen` | `gpu-nvidia` | 蓝牙 | `specialisation.nvidia` |
-| chen Intel 笔记本 | Intel 285H | 仅内显 | `probe-portable-chen` | `gpu-intel` | 蓝牙 | `specialisation.intel` |
-| 员工机 | AMD 3600 | NVIDIA 3060 | `probe-msi-wd` | `gpu-nvidia` | — | 直接 import（无变体） |
-
-> 两台 NVIDIA 机（3900X 台式 + 4800H 笔记本）硬件配置相同，共用同一个 `specialisation.nvidia`。
-> 变体按"**GPU 类别**"分，不按"每台机器"分。
+映射的**唯一权威来源是代码**：`hardware/machines.nix`（一台机器 = 探测 + 驱动 + 能力的组合，接线时引用）。
 
 ## 常用命令
 

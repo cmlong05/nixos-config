@@ -1,14 +1,13 @@
-# 员工机安装（固定硬件：AMD 3600 + NVIDIA 3060）
-# 接线点：硬件(hardware/) + 挂载(disk.nix) + 系统领域(shared/) + 用户点名单(users.nix)
+# 员工机安装（msi-wd）—— 固定硬件 AMD 3600 + NVIDIA 3060
+# 接线点：硬件(hardware/machines.nix) + 挂载(disk.nix) + 系统领域(shared/) + 用户点名单(users.nix)
 # 注意：本机不开蓝牙、不开 podman（不 import 对应模块），hostName 为 msi-wd。
 { ... }:
 
+let
+  machines = import ../../hardware/machines.nix;
+in
 {
-  imports = [
-    # 硬件：探测（固定 AMD）+ 底座 + NVIDIA 驱动
-    ../../hardware/probe-msi-wd.nix  # 员工机探测（装机时生成后拆入）
-    ../../hardware/common.nix    # 图形底座 + 固件 + 双微码（厂商无关）
-    ../../hardware/gpu-nvidia.nix
+  imports = machines.msi-wd ++ [
     # 挂载（跟盘走；员工机内盘）
     ./disk.nix
     # 系统领域（各安装共用）
