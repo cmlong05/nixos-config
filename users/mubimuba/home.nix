@@ -1,4 +1,4 @@
-# Home Manager 配置入口（员工用户 mubimuba，员工机 mubimuba 主机专用）
+# Home Manager 配置入口（员工用户 mubimuba，员工机 msi-wd 专用）
 { config, pkgs, ... }:
 
 {

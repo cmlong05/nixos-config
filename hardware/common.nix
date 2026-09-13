@@ -4,8 +4,8 @@
 # 所以 CPU 微码两个都要开、固件要显式声明。
 #
 # 厂商专属的图形驱动不放这里，按机器叠加：
-#   - NVIDIA 独显 → shared/gpu-nvidia.nix（mubimuba；便携盘上作为 specialisation.nvidia）
-#   - Intel 内显 → shared/gpu-intel.nix （便携盘上作为 specialisation.intel）
+#   - NVIDIA 独显 → hardware/gpu-nvidia.nix（msi-wd；便携盘上作为 specialisation.nvidia）
+#   - Intel 内显 → hardware/gpu-intel.nix （便携盘上作为 specialisation.intel）
 { ... }:
 
 {

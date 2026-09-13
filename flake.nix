@@ -1,5 +1,5 @@
 {
-  description = "NixOS configuration (nixos: portable disk + specialisation / mubimuba: 员工机)";
+  description = "NixOS configuration (portable-chen: 便携盘 + specialisation / msi-wd: 员工机)";
 
   inputs = {
     nixpkgs.url = "git+https://mirrors.nju.edu.cn/git/nixpkgs.git?ref=nixos-26.05&shallow=1";
@@ -45,9 +45,9 @@
     {
       nixosConfigurations = {
         # 便携盘系统（AMD+NVIDIA 台式机 / Intel 笔电 共用，硬件差异走 specialisation）
-        nixos = mkHost ./os-disk/nixos/default.nix;
-        # 员工机（hostname: mubimuba，同款硬件）
-        mubimuba = mkHost ./os-disk/mubimuba/default.nix;
+        portable-chen = mkHost ./os-disk/portable-chen/default.nix;
+        # 员工机（hostname: msi-wd，同款硬件）
+        msi-wd = mkHost ./os-disk/msi-wd/default.nix;
       };
     };
 }

@@ -1,4 +1,4 @@
-# Home Manager 配置入口（用户 chen，作者机 nixos）
+# Home Manager 配置入口（用户 chen，便携盘 portable-chen）
 { config, pkgs, inputs, ... }:
 
 {

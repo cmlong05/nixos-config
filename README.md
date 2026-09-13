@@ -1,11 +1,11 @@
-# NixOS 配置（nixos：便携盘 + 硬件变体 / mubimuba：员工机）
+# NixOS 配置（portable-chen：便携盘 + 硬件变体 / msi-wd：员工机）
 
 使用 flakes + home-manager 的 NixOS 配置仓库。
 
 | 主机 | 用途 | 用户 | 说明 |
 |------|------|------|------|
-| `nixos` | **便携盘系统**（chen 的多台机器共用同一块移动硬盘） | chen | 全功能：蓝牙 / podman / dsh；**基础硬件无关**，开机菜单选 `nvidia` / `intel` 变体 |
-| `mubimuba` | 员工机（同款硬件，内盘独立安装） | mubimuba（员工）+ bumooby（管理员） | 精简：无蓝牙 / podman / dsh；mubimuba 无 sudo |
+| `portable-chen` | **便携盘系统**（chen 的多台机器共用同一块移动硬盘） | chen | 全功能：蓝牙 / podman / dsh；**基础硬件无关**，开机菜单选 `nvidia` / `intel` 变体 |
+| `msi-wd` | 员工机（同款硬件，内盘独立安装） | mubimuba（员工）+ bumooby（管理员） | 精简：无蓝牙 / podman / dsh；mubimuba 无 sudo |
 
 > chen 的硬件差异**不用多个 host**，而用 `specialisation`：基础系统插到任何机器都能进桌面，
 > 开机时在菜单里选 `nvidia`（AMD 台式机）或 `intel`（Intel 笔电）。换机器**零命令**。
@@ -30,28 +30,29 @@ nixos-config/
 │       ├── shell.nix            # bash + direnv
 │       ├── apps.nix             # 用户级应用包
 │       └── llm.nix              # llm-agents 工具（dsh / reasonix，仅 chen）
+├── hardware/                    # 硬件维度：探测 + 驱动 + 能力（与安装解耦）
+│   ├── common.nix               # 硬件底座（图形 + 固件 + intel/amd 双微码）
+│   ├── gpu-nvidia.nix           # NVIDIA 独显（3 台 NVIDIA 机共用）
+│   ├── gpu-intel.nix            # Intel 内显（Intel 笔电）
+│   ├── portable-chen.nix        # 便携盘探测（硬件无关）
+│   ├── msi-wd.nix               # 员工机探测（固定 AMD）
+│   └── bluetooth.nix            # 蓝牙能力
 ├── os-disk/                   # OS 维度：一个子目录 = 一次安装（= 一份 OS + 它装的盘）
-│   ├── nixos/                   # 便携盘系统（多台机器共用一块移动硬盘）
-│   │   ├── default.nix          # 接线点（hostName=nixos）+ specialisation.nvidia / intel
-│   │   ├── hardware.nix         # 硬件探测（**硬件无关**：不写死 kvm-*、无微码）
+│   ├── portable-chen/           # 便携盘系统（多台机器共用一块移动硬盘）
+│   │   ├── default.nix          # 接线点（hostName=portable-chen）+ specialisation.nvidia / intel
 │   │   ├── disk.nix             # 挂载（fileSystems + swap，跟盘走）
 │   │   ├── users.nix            # 用户点名单（chen）
-│   │   ├── bluetooth.nix        # 开蓝牙
-│   │   └── virtualisation.nix   # 开 podman
-│   └── mubimuba/                # 员工机（独立安装，硬件固定）
-│       ├── default.nix          # 接线点（hostName=mubimuba）
-│       ├── hardware.nix         # ⚠️ 模板，装机时重新生成
+│   │   └── virtualisation.nix   # podman（本安装的系统服务）
+│   └── msi-wd/                  # 员工机（独立安装，硬件固定）
+│       ├── default.nix          # 接线点（hostName=msi-wd）
 │       ├── disk.nix             # ⚠️ 模板（内盘 UUID，装机时生成后填入）
 │       └── users.nix            # 点名单（bumooby + mubimuba）
-└── shared/                      # 共享系统领域（各主机共用的机级模块）
+└── shared/                      # 系统领域（各安装共用的机级服务）
     ├── boot.nix                 # systemd-boot + 内核
     ├── networking.nix           # NetworkManager
     ├── nix.nix                  # 缓存源 / flakes / nh / allowUnfree
     ├── locale.nix               # 时区 / locale / fcitx5 / 字体
     ├── desktop.nix              # SDDM + Plasma 6 / Firefox / PipeWire / CUPS
-    ├── hardware-common.nix      # 硬件底座（图形 + 固件 + intel/amd 双微码）
-    ├── gpu-nvidia.nix           # NVIDIA 独显（mubimuba；便携盘作 specialisation.nvidia）
-    ├── gpu-intel.nix            # Intel 内显（便携盘作 specialisation.intel）
     ├── flatpak.nix              # Flatpak 共享应用（Vivaldi/微信，系统级）
     └── packages.nix             # 系统级基础软件（含 vim —— root/救援也要用）
 ```
@@ -63,7 +64,7 @@ nixos-config/
 nh os switch
 
 # 指定主机（员工机）
-nh os switch --flake .#mubimuba
+nh os switch --flake .#msi-wd
 
 # 便携盘的硬件变体：不指定就停在基础系统
 nh os switch -s intel          # 在 Intel 笔电上
@@ -79,9 +80,10 @@ nix flake check
 
 ## 注意事项 / 踩坑记录
 
-- **每份安装自己的东西放 os-disk/，共性放 shared/**：hostName、用户点名单、蓝牙/podman、
-  盘挂载（`disk.nix`）都在 `os-disk/<name>/` 下，不要写进共享模块。
-  跨机器**可变**的硬件差异（如 GPU）走 `specialisation`，不在这里。
+- **维度判据**：硬件 → `hardware/`；一份 OS 的身份 + 盘 → `os-disk/<name>/`；
+  机级服务（各安装共用）→ `shared/`；人 → `users/`。
+  `os-disk/<name>/default.nix` 只做接线：把 hardware / disk / shared / users 拼起来。
+  跨机器**可变**的硬件差异（GPU）走 `specialisation`，不新增目录。
 - **应用放哪，判据是"机器要"还是"人要"**：
   - 机器要（root/sudo、救援 TTY 也要能用的，如 `vim`）→ `shared/packages.nix`；
   - 某个人自己的 → `users/<name>/`：Nix 包放 `apps.nix`，Flatpak 放 `flatpak.nix`
@@ -89,13 +91,13 @@ nix flake check
   - `os-disk/<name>/default.nix` **只做接线，不放任何应用**。
 - **硬件配置拆两半**：`nixos-generate-config` 生成的文件里，挂载行
   （fileSystems/swapDevices）放 `os-disk/<name>/disk.nix`（跟盘走），探测行（boot.*/hostPlatform）
-  放 `os-disk/<name>/hardware.nix`。员工机装机时需重新生成并手工拆一次。
-  ⚠️ 便携盘的 `os-disk/nixos/hardware.nix` 必须保持**硬件无关**——不能出现
+  放 `hardware/<name>.nix`（跟机器走）。员工机装机时需重新生成并手工拆一次。
+  ⚠️ 便携盘的 `hardware/portable-chen.nix` 必须保持**硬件无关**——不能出现
   `kvm-amd`/`kvm-intel`、微码之类机器专属项，否则换机器就出问题。
-- **便携盘用 specialisation，不用多 host**：`os-disk/nixos` 的基础系统硬件无关
-  （不写死 kvm-*，intel/amd 微码都开、固件显式声明），插到任何机器都能进桌面；
-  `nvidia` / `intel` 是**开机菜单里的变体**。换机器零命令。
-  ⚠️ 两个代价：(1) 每个变体是一份**完整系统闭包**（GB 级），store 占用翻倍；
+- **便携盘用 specialisation，不用多 host**：`os-disk/portable-chen` 的基础系统硬件无关
+  （`hardware/portable-chen.nix` 不写死 kvm-*，intel/amd 微码在 `hardware/common.nix` 都开），
+  插到任何机器都能进桌面；`nvidia` / `intel` 是**开机菜单里的变体**。换机器零命令。
+  ⚠️ 两个代价：(1) 每个变体多出一份系统闭包（共享的包不重复，额外≈差异部分）；
   (2) `nh os switch` 之后默认项会**回到基础系统**，要留在变体上得加 `-s <变体>`。
 - **内核**：用发行版默认 `pkgs.linuxPackages`（6.18.x）。曾钉 7.1 是为了避开 7.2
   与 nvidia-open 595.71.05 的编译不兼容（`os-interface.c strncpy`），但 7.1 已 EOL，
