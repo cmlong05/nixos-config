@@ -25,14 +25,11 @@
     ../../shared/packages.nix
     # 用户点名单（chen）
     ./users.nix
+    # 机器变体（specialisation，见同目录 specialisations.nix）
+    ./specialisations.nix
   ];
 
   networking.hostName = "portable-chen";
-
-  # 每台机器 = 一个命名变体（见 machines/）。inheritParentConfig 默认 true = 基础 + 机器组合。
-  specialisation.chen-desktop.configuration.imports      = [ ../../machines/chen-desktop.nix ];
-  specialisation.chen-laptop-amd.configuration.imports   = [ ../../machines/chen-laptop-amd.nix ];
-  specialisation.chen-laptop-intel.configuration.imports = [ ../../machines/chen-laptop-intel.nix ];
 
   system.stateVersion = "26.05";
 }
