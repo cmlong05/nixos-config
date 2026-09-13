@@ -15,7 +15,7 @@
     ../../shared/nix.nix
     ../../shared/locale.nix
     ../../shared/desktop.nix
-    ../../shared/gpu-common.nix
+    ../../shared/hardware-common.nix
     ../../shared/gpu-nvidia.nix
     ../../shared/flatpak.nix
     ../../shared/packages.nix

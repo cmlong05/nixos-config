@@ -1,5 +1,5 @@
 {
-  description = "NixOS configuration (multi-host: nixos + aiaves + mubimuba)";
+  description = "NixOS configuration (nixos: portable disk + specialisation / mubimuba: 员工机)";
 
   inputs = {
     nixpkgs.url = "git+https://mirrors.nju.edu.cn/git/nixpkgs.git?ref=nixos-26.05&shallow=1";
@@ -44,10 +44,8 @@
     in
     {
       nixosConfigurations = {
-        # 作者日常机（hostname: nixos）
+        # 便携盘系统（AMD+NVIDIA 台式机 / Intel 笔电 共用，硬件差异走 specialisation）
         nixos = mkHost ./hosts/nixos/default.nix;
-        # 作者的 Intel 笔电（hostname: aiaves，与 nixos 共用同一块移动硬盘）
-        aiaves = mkHost ./hosts/aiaves/default.nix;
         # 员工机（hostname: mubimuba，同款硬件）
         mubimuba = mkHost ./hosts/mubimuba/default.nix;
       };
