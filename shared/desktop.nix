@@ -1,7 +1,9 @@
-# 桌面环境：SDDM + Plasma 6、浏览器、声音（PipeWire）、打印（CUPS）
-{ config, pkgs, ... }:
+# 桌面环境：SDDM + Plasma 6、浏览器、声音（PipeWire）
+{ ... }:
 
 {
+  imports = [ ./printing.nix ];
+
   # Enable the X11 windowing system.
   # You can disable this if you're only using the Wayland session.
   services.xserver.enable = false;
@@ -28,36 +30,6 @@
   environment.etc."chromium/policies/recommended/restore-session.json".text = ''
     { "RestoreOnStartup": 1 }
   '';
-
-  # Enable CUPS to print documents.
-  services.printing.enable = true;
-
-  # 标签打印机：经局域网 CUPS 服务器 (10.10.10.9) 共享的 Xprinter XP-470E。
-  # 远端支持 IPP Everywhere，本地用内置 everywhere 驱动自动探测生成 PPD，
-  # 无需安装厂商驱动。尺寸等选项在打印对话框中选择（如 2x4in / 4x6in）。
-  hardware.printers = {
-    # 如需设为默认打印机，取消下行注释：
-    # ensureDefaultPrinter = "Xprinter_XP-470E";
-    ensurePrinters = [
-      {
-        name = "Xprinter_XP-470E";
-        description = "Xprinter XP-470E 标签打印机 (10.10.10.9)";
-        location = "office";
-        deviceUri = "ipp://10.10.10.9:631/printers/Xprinter_XP-470E";
-        model = "everywhere";
-      }
-    ];
-  };
-
-  # ensure-printers 默认是开机一次性服务：若开机时远端 CUPS 服务器 (10.10.10.9)
-  # 尚未就绪，它会失败且不自动重试，导致打印机队列缺失。
-  # 这里覆盖为失败自动重试，直到远端可连为止。
-  systemd.services.ensure-printers = {
-    serviceConfig = {
-      Restart = "on-failure";
-      RestartSec = "1800s";
-    };
-  };
 
   # Enable sound with pipewire.
   services.pulseaudio.enable = false;
