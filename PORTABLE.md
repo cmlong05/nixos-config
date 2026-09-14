@@ -55,7 +55,14 @@ chen 的 3 台机器共用同一块移动硬盘（同一份 `/`、同一份 `/ho
 1. ~~chen 的第三台机器是什么硬件~~ → 已确认：AMD 4800H 笔记本（`chen-laptop-amd`），已进 `machines/`。
 2. `bumooby` 是否需要 home/桌面配置（当前：不加，仅系统维护账户）。
 3. 时间策略：`time.hardwareClockInLocalTime`，还是 Windows 侧改（双系统 RTC 差 8 小时）。
-4. 是否加 zram 以减少 USB SSD 写入（swap 现在就在 USB 盘上）。
+4. ~~是否加 zram 以减少 USB SSD 写入（swap 现在就在 USB 盘上）~~
+   → **已定（2026-09-14）：zram 独占，删掉磁盘 swap。** 实测该盘是 USB 桥（JMicron `152d` / **uas** 驱动）
+   + SSD（`rotational=0`，内核把 swap 标 `SS`），8.8G swap 里**已在用 1.5G**（firefox wrapper 300M、baloo 90M…），
+   换出是真实发生的。三条理由：换页 I/O 出错是**内核级**的（进程 SIGBUS、D 状态任务杀不掉、reboot 可能卡住）、
+   与 `/` 同盘同一条 uas 队列（抖动 = 桌面冻结而非变慢）、写量叠加而 USB 桥挡 SMART（磨损不可观测）。
+   落地：`os-disk/portable-chen/swap.nix`（zram，zstd / 50% / prio 100，`swappiness=100`、`page-cluster=0`），
+   `disk.nix` 不再声明 `swapDevices`；盘上分区保留不启用，应急可手工 `swapon`。
+   代价（接受）：无磁盘兜底（极端压力靠 OOM killer 收尾）、zram 不能休眠。
 5. ~~变体命名~~ → 已按机器名命名（chen-desktop / chen-laptop-amd / chen-laptop-intel）。
 
 ## D. 硬事实（避免重新踩坑）
@@ -65,5 +72,7 @@ chen 的 3 台机器共用同一块移动硬盘（同一份 `/`、同一份 `/ho
 - **每个变体多出一份系统闭包**，但共享的包是同一份 store 路径（额外占用≈差异部分）；GC 时会被启动条目引用而保留。
 - **不要给不同变体配不同内核**（否则要编译两份内核）。
 - **BitLocker**：内盘 Windows 已加密，不要为双系统去改 BIOS 的 Secure Boot/TPM/启动顺序，否则要恢复密钥。
+- **移动盘不做磁盘 swap**：`os-disk/portable-chen/` 只有 zram（`swap.nix`），盘上的 swap 分区保留但**不启用**。
+  **永远不要**给这块盘配休眠 / `boot.resumeDevice` —— 3 台机器共用一份 `/`，A 机写下的内存镜像在 B 机 resume 会错乱。
 - 日常命令：`bootctl status` 与 `sudo ls /boot/loader/entries` 查启动条目；
   `nh os switch .#portable-chen -s chen-laptop-intel` 指定机器变体，`-S` 回到基础系统。

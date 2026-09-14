@@ -47,7 +47,8 @@ nixos-config/
 │   ├── portable-chen/           # 便携盘（一次安装跨 3 台机器）
 │   │   ├── default.nix          # 接线点（盘 + shared + 用户 + 变体）
 │   │   ├── machine_spe.nix      # 机器变体（specialisation：chen-desktop / laptop-amd / laptop-intel）
-│   │   ├── disk.nix             # 挂载（fileSystems + swap，跟盘走）
+│   │   ├── disk.nix             # 挂载（fileSystems，跟盘走；故意不含 swapDevices）
+│   │   ├── swap.nix             # swap 策略（zram 独占，不写移动盘）
 │   │   ├── users.nix            # 用户点名单（chen）
 │   │   └── virtualisation.nix   # podman
 │   └── msi-wd/                  # 员工机（独立安装）
@@ -113,6 +114,12 @@ nix flake check
   `chen-desktop` / `chen-laptop-amd` / `chen-laptop-intel` 是**开机菜单里的机器变体**，换机器零命令。
   ⚠️ 两个代价：(1) 每个变体多出一份系统闭包（共享的包不重复，额外≈差异部分）；
   (2) `nh os switch` 之后默认项会**回到基础系统**，要留在变体上得加 `-s <机器>`。
+- **便携盘不做磁盘 swap**：swap 与 `/` 在同一块 USB SSD、同一条 uas 队列，且换页 I/O 出错是
+  **内核级**的（进程 SIGBUS、D 状态任务杀不掉），写量还叠加在同一块盘上而 USB 桥挡 SMART →
+  改用 zram（`os-disk/portable-chen/swap.nix`：zstd / 50% 内存 / prio 100，`swappiness=100`、
+  `page-cluster=0`），`disk.nix` 不再声明 `swapDevices`（盘上分区保留，应急可手工 `swapon`）。
+  代价：没有磁盘兜底（极端压力靠 OOM killer），且**不能休眠** —— 3 台机器共用一份 `/`，
+  在 A 机写下的内存镜像到 B 机 resume 会错乱，所以永远不要配 `boot.resumeDevice`。
 - **内核**：用发行版默认 `pkgs.linuxPackages`（6.18.x）。曾钉 7.1 是为了避开 7.2
   与 nvidia-open 595.71.05 的编译不兼容（`os-interface.c strncpy`），但 7.1 已 EOL，
   nixpkgs 对它直接 throw，会让**所有 host 无法重建**。换回 `linuxPackages_latest`

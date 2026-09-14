@@ -9,6 +9,8 @@
   imports = [
     # 挂载（跟盘走；3 台机器共用同一块移动盘）
     ./disk.nix
+    # swap 策略（跟盘走：USB 盘不做磁盘 swap，改用 zram）
+    ./swap.nix
     # 系统服务（本安装特有）
     ./virtualisation.nix                     # podman
     # 系统领域（各安装共用）
