@@ -58,13 +58,13 @@ sudo cp /mnt/etc/nixos/hardware-configuration.nix /tmp/hw-chen-generated.nix
 sudo rm -rf /mnt/etc/nixos
 sudo mkdir -p /mnt/etc/nixos
 sudo cp -a ~/nixos-config/. /mnt/etc/nixos/
-# 把生成的硬件配置拆成两部分：
-#   - 挂载行（fileSystems + swapDevices）→ 覆盖 os-disk/msi-wd/disk.nix
-#   - 其余硬件探测（availableKernelModules / 微码 / hostPlatform / not-detected）
-#     → 覆盖 machines/employee-3600/hardware-configuration.nix
-# 建议把 /tmp/hw-chen-generated.nix 交给 AI，让它按上述覆盖。
+# 挂载行（fileSystems + swapDevices）跟盘走 → 从完整生成结果里取，覆盖 os-disk/msi-wd/disk.nix
+# 硬件探测部分用 --no-filesystems 直接生成（工具自行省略挂载，勿手改）：
+#   sudo nixos-generate-config --no-filesystems --root /mnt
+#   → 覆盖 machines/employee-3600/hardware-configuration.nix
+# 建议把完整生成的 /tmp/hw-chen-generated.nix 交给 AI，让它按上述覆盖。
 
-# 确认 flake 结构与拆分结果
+# 确认 flake 结构与落盘结果
 ls /mnt/etc/nixos/flake.nix /mnt/etc/nixos/os-disk/msi-wd/default.nix /mnt/etc/nixos/machines/employee-3600/hardware-configuration.nix /mnt/etc/nixos/os-disk/msi-wd/disk.nix
 
 3. `nixos-install --flake /mnt/etc/nixos#msi-wd`。

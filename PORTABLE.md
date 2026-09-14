@@ -2,8 +2,9 @@
 
 > 精简自早期计划稿（实测时间 2026-09-12，Intel 笔记本从移动硬盘启动本仓库系统）。
 > 路径已对齐 2026-09 目录重构：`modules/`→`shared/`、`home/`→`users/`、
-> `configuration.nix`→`default.nix`、`hardware-configuration.nix` 拆为
-> `machines/<机器>/hardware-configuration.nix`（生成，勿改）+ `machines/<机器>/default.nix`（手写尾巴）+ `os-disk/<name>/disk.nix`（挂载）。
+> `configuration.nix`→`default.nix`、`hardware-configuration.nix` 生成到
+> `machines/<机器>/hardware-configuration.nix`（--no-filesystems，勿改）；
+> 手写尾巴放 `machines/<机器>/default.nix`，挂载行单独维护在 `os-disk/<name>/disk.nix`。
 > 本文件只保留**待修 bug、待定决策、以及避免重踩的硬事实**；原稿的实测过程与逐节方案已删除。
 
 ## 背景
