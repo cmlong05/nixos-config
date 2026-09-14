@@ -1,4 +1,4 @@
-# chen 台式机：AMD 3900X + NVIDIA 3060（无核显）
+# chen 台式机：AMD 3900XT + NVIDIA 3060（无核显）
 { ... }:
 
 {

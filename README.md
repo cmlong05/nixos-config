@@ -1,8 +1,7 @@
-# NixOS 配置（portable-chen：便携盘 + 硬件变体 / msi-wd：员工机）
-
+# NixOS 配置
 使用 flakes + home-manager 的 NixOS 配置仓库。
 
-| 主机 | 用途 | 用户 | 说明 |
+| os+disk | 用途 | 用户 | 说明 |
 |------|------|------|------|
 | `portable-chen` | **便携盘系统**（chen 的多台机器共用同一块移动硬盘） | chen | 全功能：蓝牙 / podman / dsh；**基础硬件无关**，开机菜单选 `nvidia` / `intel` 变体 |
 | `msi-wd` | 员工机（同款硬件，内盘独立安装） | mubimuba（员工）+ bumooby（管理员） | 精简：无蓝牙 / podman / dsh；mubimuba 无 sudo |
@@ -60,9 +59,11 @@ nixos-config/
 └── shared/                      # 系统领域（各安装共用的机级服务）
     ├── boot.nix                 # systemd-boot + 内核
     ├── networking.nix           # NetworkManager
+    ├── ssh.nix                  # SSH 远程访问（局域网内 sshd，两 host 共用）
     ├── nix.nix                  # 缓存源 / flakes / nh / allowUnfree
     ├── locale.nix               # 时区 / locale / fcitx5 / 字体
-    ├── desktop.nix              # SDDM + Plasma 6 / Firefox / PipeWire / CUPS
+    ├── desktop.nix              # SDDM + Plasma 6 / Firefox / PipeWire
+    ├── printing.nix             # CUPS + 标签打印机（容错 + 定时重试）
     ├── flatpak.nix              # Flatpak 共享应用（Vivaldi/微信，系统级）
     └── packages.nix             # 系统级基础软件（含 vim —— root/救援也要用）
 ```

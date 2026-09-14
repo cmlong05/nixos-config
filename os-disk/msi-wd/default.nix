@@ -9,6 +9,7 @@
     # 系统领域（各安装共用）
     ../../shared/boot.nix
     ../../shared/networking.nix
+    ../../shared/ssh.nix
     ../../shared/nix.nix
     ../../shared/locale.nix
     ../../shared/desktop.nix
