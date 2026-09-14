@@ -1,0 +1,25 @@
+# 机器指纹表：一行 = 一条指纹，格式「指纹|机器（specialisation 名）」。
+#
+# 谁在读它：
+#   - os-disk/portable-chen/boot-machine.nix  部署时把默认启动条目指向本机变体
+#   - os-disk/portable-chen/auto-machine.nix  开机后（没 rebuild 过的机器）自动切变体
+#   - scripts/detect-machine.sh               认机器（上面两处都调它）
+#
+# 指纹按「子串」匹配，取值来自本机这三处（scripts/detect-machine.sh --probes 直接打印）：
+#   /sys/class/dmi/id/product_name    整机型号
+#   /sys/class/dmi/id/board_name      主板型号
+#   /proc/cpuinfo 的 model name       CPU 型号
+# 一台机器可以写多条指纹：DMI 认不出时用 CPU 型号兜底。
+#
+# 加一台机器：加行 + machines/<机器>/ + machine_spe.nix 里加变体。
+
+# chen 笔记本：AMD 4800H + NVIDIA 3060（本机实测指纹）
+Jiaolong Series GM5NG0O|chen-laptop-amd
+GM5NG0O|chen-laptop-amd
+AMD Ryzen 7 4800H with Radeon Graphics|chen-laptop-amd
+
+# chen 台式机：AMD 3900XT + NVIDIA 3060（CPU 型号按 README 硬件表推测，到机后核实）
+AMD Ryzen 9 3900XT|chen-desktop
+
+# chen Intel 笔电：Core Ultra 9 285H（CPU 型号按 README 硬件表推测，到机后核实）
+Intel(R) Core(TM) Ultra 9 285H|chen-laptop-intel

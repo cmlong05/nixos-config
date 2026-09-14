@@ -3,11 +3,13 @@
 
 | os+disk | 用途 | 用户 | 说明 |
 |------|------|------|------|
-| `portable-chen` | **便携盘系统**（chen 的多台机器共用同一块移动硬盘） | chen | 全功能：蓝牙 / podman / dsh；**基础只带盘、不带硬件**，开机菜单选机器变体 |
+| `portable-chen` | **便携盘系统**（chen 的多台机器共用同一块移动硬盘） | chen | 全功能：蓝牙 / podman / dsh；**基础只带盘、不带硬件**，机器变体按硬件指纹**自动选**（菜单里也照旧可选） |
 | `msi-wd` | 员工机（同款硬件，内盘独立安装） | mubimuba（员工）+ bumooby（管理员） | 精简：无蓝牙 / podman / dsh；mubimuba 无 sudo |
 
 > chen 的硬件差异**不用多个 host**，而用 `specialisation`：基础系统只带盘挂载、不带硬件兜底，
-> 开机时在菜单里选 `chen-desktop` / `chen-laptop-amd` / `chen-laptop-intel`（不选则进不了桌面）。换机器**零命令**。
+> 每台机器对应菜单里的一条 `chen-desktop` / `chen-laptop-amd` / `chen-laptop-intel`。
+> 选哪条由硬件指纹自动决定（部署期把默认条目指向本机 + 运行期兜底，见 `os-disk/portable-chen/boot-machine.nix`
+> 与 `auto-machine.nix`），换机器**零命令**；菜单里手动选也照旧可用。
 
 ## 目录结构
 
@@ -31,6 +33,7 @@ nixos-config/
 │       ├── apps.nix             # 用户级应用包
 │       └── llm.nix              # llm-agents 工具（dsh / reasonix，仅 chen）
 ├── machines/                    # 机器维度：每台实体机器一个目录
+│   ├── machine-keys.txt         # 机器指纹表（DMI 型号/主板/CPU → 变体名；认机器只看它）
 │   ├── chen-desktop/            # AMD 3900XT + NVIDIA 3060
 │   │   ├── hardware-configuration.nix  # 生成（--no-filesystems），勿手改
 │   │   └── default.nix                 # imports 上面 + 手写尾巴
@@ -45,8 +48,10 @@ nixos-config/
 │       └── default.nix
 ├── os-disk/                     # OS 维度：一个子目录 = 一次安装
 │   ├── portable-chen/           # 便携盘（一次安装跨 3 台机器）
-│   │   ├── default.nix          # 接线点（盘 + shared + 用户 + 变体）
+│   │   ├── default.nix          # 接线点（盘 + shared + 用户 + 变体 + 认机器）
 │   │   ├── machine_spe.nix      # 机器变体（specialisation：chen-desktop / laptop-amd / laptop-intel）
+│   │   ├── boot-machine.nix     # 认机器（部署期）：把默认启动条目指向本机变体
+│   │   ├── auto-machine.nix     # 认机器（运行期）：换机器后开机自动切到对应变体
 │   │   ├── disk.nix             # 挂载（fileSystems，跟盘走；故意不含 swapDevices）
 │   │   ├── swap.nix             # swap 策略（zram 独占，不写移动盘）
 │   │   ├── users.nix            # 用户点名单（chen）
@@ -67,6 +72,12 @@ nixos-config/
     └── packages.nix             # 系统级基础软件（含 vim —— root/救援也要用）
 ```
 
+另有一个不在 `shared/` 里的脚本（被上面两个"认机器"模块调用，也可手动跑）：
+
+```
+scripts/detect-machine.sh        # 认机器：读 DMI/CPU 指纹查 machines/machine-keys.txt
+```
+
 ## 机器 ↔ 硬件映射
 
 映射的**唯一权威来源是代码**：`machines/<机器>/`（一个目录 = `hardware-configuration.nix`（生成，勿改）+ `default.nix`（手写尾巴）），`specialisation` 按机器名选择。
@@ -80,11 +91,18 @@ nh os switch
 # 指定主机（员工机）
 nh os switch --flake .#msi-wd
 
-# 便携盘的机器变体：不指定就停在基础系统（基础不带硬件，进不了桌面）
-nh os switch -s chen-laptop-intel   # 在 Intel 笔电上
-nh os switch -s chen-desktop        # 在 AMD+NVIDIA 台式机上
-nh os switch -s chen-laptop-amd     # 在 AMD+NVIDIA 笔记本上
-nh os switch -S                     # 忽略变体，回到基础系统
+# 便携盘：机器变体自动选 —— 部署期认本机指纹，把默认启动条目指向本机变体，
+# 所以 `nh os switch` 后直接重启就是本机桌面（开机零选择，菜单 5 秒内仍可手动选）
+nh os switch
+
+# 认机器 / 手动指定变体（一般用不到）
+scripts/detect-machine.sh            # 打印本机对应的变体名
+scripts/detect-machine.sh --probes   # 打印本机指纹（给 machine-keys.txt 加新机器时用）
+nh os switch -s chen-laptop-intel    # 手动把「运行中的系统」切到指定变体
+nh os switch -S                      # 忽略变体，回到基础系统
+
+# 注意：plain `nh os switch` 会让「运行中的系统」回到基础系统（基础不带硬件，没桌面）；
+# 不想重启就切回本机变体：sudo systemctl restart auto-machine-specialisation
 
 # 更新锁定输入
 nix flake update
@@ -110,10 +128,30 @@ nix flake check
   挂载行（fileSystems/swapDevices）跟盘走，放 `os-disk/<name>/disk.nix`。
   `--no-filesystems` 是省事关键：产物天然不含 fileSystems/swap，无需手工"砍"。
 - **便携盘用 specialisation，不用多 host**：`os-disk/portable-chen` 的基础系统只带盘挂载、
-  不带硬件兜底（initrd 没有读盘模块），所以**不选变体进不了桌面**；
+  不带机器硬件（它的 initrd 里**没有 USB 读盘模块** → 基础条目在这块盘上挂不上根，起不来）；
   `chen-desktop` / `chen-laptop-amd` / `chen-laptop-intel` 是**开机菜单里的机器变体**，换机器零命令。
-  ⚠️ 两个代价：(1) 每个变体多出一份系统闭包（共享的包不重复，额外≈差异部分）；
-  (2) `nh os switch` 之后默认项会**回到基础系统**，要留在变体上得加 `-s <机器>`。
+  ⚠️ 代价：每个变体多出一份系统闭包（共享的包不重复，额外≈差异部分）。
+- **机器变体自动选（2026-09-14）**：菜单"选哪条"是 bootloader 的事，系统里改不了 →
+  两段式，都靠 `machines/machine-keys.txt`（指纹表）+ `scripts/detect-machine.sh` 认机器：
+  - **部署期** `os-disk/portable-chen/boot-machine.nix`：`nh os switch` 装完 bootloader 之后
+    （`extraInstallCommands`）读本机 DMI/CPU，把 `loader.conf` 的 `default` 指向**本机变体**条目
+    → 开机倒计时（`boot.loader.timeout`，默认 5s）结束直接进本机。**不做这一步默认条目就是基础系统，
+    而基础系统挂不上盘** —— 这就是"每次开机都得手选"的根源。
+  - **运行期** `os-disk/portable-chen/auto-machine.nix`：把盘插到**没 rebuild 过**的机器上时，
+    默认条目是上一个机器的变体；开机后一个 oneshot 服务
+    调它继承来的 `.../specialisation/<机器>/bin/switch-to-configuration test` 切到对的那台
+    （`test` 只激活，不重写 /boot、不动 profile；已在正确变体里时是空操作），切完把
+    `display-manager` 重启一次。⚠️ 故意不与 `display-manager` 建顺序关系（`switch-to-configuration`
+    自己会 start/restart 它，排前/排后都会形成环），所以这一路径上桌面会闪一下。
+    ⚠️ 也只在**开机**路径上动手：激活会把「新增单元」拉起来，本单元第一次进新配置时正是被那次激活
+    启动的 —— 里面再切一次就是并发切换（实测会让 `nh os switch` 报 `auto-machine-specialisation.service`
+    failed、退出码 4）。所以脚本先扫 `/proc/*/exe`：有进程的可执行文件是 `switch-to-configuration`
+    （即激活在跑）就退出 —— 不用 `pgrep -f`，它匹配整条命令行，会被"命令行里恰好含这串字"的
+    无关进程误命中（实测在 shell 里跑诊断命令就会误判）。
+  - 指纹表里台式机 / Intel 笔电两行是按硬件表**推测**的 CPU 型号，到机后用
+    `scripts/detect-machine.sh --probes` 核实；认不出只打日志，退化成手动菜单，不会卡启动。
+  - ⚠️ **新增文件必须先 `git add`**：flake 是 git 输入，未跟踪文件对 Nix 不可见
+    （`nix eval` 会直接报 "is not tracked by Git"）。
 - **便携盘不做磁盘 swap**：swap 与 `/` 在同一块 USB SSD、同一条 uas 队列，且换页 I/O 出错是
   **内核级**的（进程 SIGBUS、D 状态任务杀不掉），写量还叠加在同一块盘上而 USB 桥挡 SMART →
   改用 zram（`os-disk/portable-chen/swap.nix`：zstd / 50% 内存 / prio 100，`swappiness=100`、

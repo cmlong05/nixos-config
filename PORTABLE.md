@@ -49,6 +49,47 @@ chen 的 3 台机器共用同一块移动硬盘（同一份 `/`、同一份 `/ho
   `nh os switch` 后默认项会**回到基础系统**
   （要留在变体上得 `-s <变体>`）；**不要给不同变体配不同内核**。
 - 若将来某台机器的差异超出"显卡变体"的范围（例如需要不同的用户/服务），那才应该另开独立 host。
+- **2026-09-14 补：菜单条目「自动选」= 部署期 + 运行期两段式。**（开机菜单选哪条是 bootloader
+  的事，任何系统内代码都改不了；`boot.loader.timeout = 0` 也只能自动进**默认条目**。）
+  - 实测硬事实：**基础系统条目在这块盘上起不来** —— 基础 initrd 里只有 `xhci-pci / sd_mod / nvme`，
+    没有 `usb-storage.ko` / `uas.ko`（读盘模块按设计放在各 `machines/<机器>/hardware-configuration.nix`），
+    而这块 JMicron 桥走 uas。三个变体的 initrd 都有 `usb-storage.ko + uas.ko` → 都能正常起。
+    所以"默认条目 = 基础系统"等于"倒计时一过就起不来"，必须让它落在变体上。
+  - **部署期**（`os-disk/portable-chen/boot-machine.nix`）：`nh os switch` 装完 bootloader 后
+    （`boot.loader.systemd-boot.extraInstallCommands`，root 在本机跑）读 DMI/CPU 指纹，把
+    `$BOOT/loader/loader.conf` 的 `default` 指向本机变体条目（按代号数值取最新一代）。认不出机器
+    只打日志、不改 loader.conf，且整段 `set +e` —— 绝不让 `nh os switch` 失败。
+  - **运行期**（`os-disk/portable-chen/auto-machine.nix`，被各变体继承）：换到**没 rebuild 过**的
+    机器时默认条目还是上一个机器的变体，开机后一个 oneshot 调
+    `<变体>/bin/switch-to-configuration test` 切到对的那台。官方文档就是这个用法；`test`
+    不重写 /boot、不动 profile。已经在正确变体里时按 `readlink /run/current-system` 比对直接退出。
+    ⚠️ 该服务**故意不与 display-manager 建顺序关系**：`switch-to-configuration` 自己会
+    start/restart 一批单元（含 display-manager），把它排在我们之前会形成环，排在我们之后则它的
+    restart 要先停我们 —— 两个方向都是死锁。所以流程是：切完 → 由服务 `systemctl restart
+    display-manager.service` 收尾（这条路径上桌面会闪一下，之后就是本机变体的桌面）。
+  - **踩过的坑（2026-09-14 实测）**：激活（`nh os switch` / `nixos-rebuild`）会「启动新增单元」，
+    所以本单元第一次进入新配置时是被**那次激活自己**拉起来的；它起来后又跑一次
+    `switch-to-configuration` → 两次切换并发 → `nh` 报 `auto-machine-specialisation.service failed`
+    （激活退出码 4）。修法：脚本第一件事扫 `/proc/<pid>/exe`，有进程的可执行文件是
+    `switch-to-configuration` 就不动手。**别用 `pgrep -f`**：它匹配整条命令行，实测在 shell 里跑
+    诊断命令（命令行里含该串字）就会被误命中；看 `/proc/<pid>/exe`（服务以 root 跑，全都可读）既准
+    又不受 argv[0]/cmdline 影响，测试时假进程也必须把那个名字做成真的可执行文件。
+    三个附带事实：1) systemd 生成的 unit 脚本外壳自带 **`set -e`**，任何一步失败都会让单元变 failed
+    并带崩激活 —— 所以每步都要显式兜住（`|| true` / `if !` / 结尾 `exit 0`），内层切换失败也只记日志；
+    2) `switch-to-configuration test` 会通过激活脚本更新 `/run/current-system`
+    （`activation-script.nix`：`ln -sfn "$(readlink -f "$systemConfig")" /run/current-system`），
+    所以切完之后 `readlink` 幂等判断是准的（实测在本机跑新脚本会直接输出"已经在 chen-laptop-amd 里"）；
+    3) Nix 缩进字符串 `''…''` 里 `''` 是转义符 —— 写 `read -d ''` 会把字符串截断（踩过），
+    所以空字符相关的解析尽量别放进 `.nix` 里的 shell 片段。
+  - 认机器只有一处实现：`machines/machine-keys.txt`（指纹表，子串匹配 product_name / board_name /
+    CPU model name）+ `scripts/detect-machine.sh`。台式机与 Intel 笔电两行是**按硬件表推测**的 CPU
+    型号，到机后用 `scripts/detect-machine.sh --probes` 核实。
+  - 兜底：认不出 → 只打日志，退化为"变体条目 + 手动菜单"，不会卡启动；`journalctl -u
+    auto-machine-specialisation -b` 看结果。想手工切：`sudo systemctl restart
+    auto-machine-specialisation`（或直接跑上面那条 `switch-to-configuration test`）。
+  - 可选加固（**未做**，属于另一个决定）：把 `usb-storage`/`uas`/`xhci_pci` 也加进基础系统
+    （`os-disk/portable-chen/disk.nix`），基础条目就能起来、成为真正的救援入口。
+    现在 `disk.nix` 第 3 行明确把这几个模块"按机器"放在 machines 里，故未擅自改。
 
 ## C. 仍需拍板
 
@@ -74,5 +115,8 @@ chen 的 3 台机器共用同一块移动硬盘（同一份 `/`、同一份 `/ho
 - **BitLocker**：内盘 Windows 已加密，不要为双系统去改 BIOS 的 Secure Boot/TPM/启动顺序，否则要恢复密钥。
 - **移动盘不做磁盘 swap**：`os-disk/portable-chen/` 只有 zram（`swap.nix`），盘上的 swap 分区保留但**不启用**。
   **永远不要**给这块盘配休眠 / `boot.resumeDevice` —— 3 台机器共用一份 `/`，A 机写下的内存镜像在 B 机 resume 会错乱。
-- 日常命令：`bootctl status` 与 `sudo ls /boot/loader/entries` 查启动条目；
-  `nh os switch .#portable-chen -s chen-laptop-intel` 指定机器变体，`-S` 回到基础系统。
+- 日常命令：`bootctl status` 与 `sudo ls /boot/loader/entries` 查启动条目，
+  `sudo grep default /boot/loader/loader.conf` 看默认条目（正常应指向**本机变体**）；
+  `scripts/detect-machine.sh [--probes]` 认机器 / 看本机指纹；
+  `nh os switch .#portable-chen -s chen-laptop-intel` 指定机器变体，`-S` 回到基础系统；
+  `sudo systemctl restart auto-machine-specialisation` 让运行中的系统立刻切回本机变体。
