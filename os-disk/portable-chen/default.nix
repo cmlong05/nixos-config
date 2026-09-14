@@ -1,21 +1,16 @@
 # 便携盘安装（portable-chen）—— 一次安装跨 3 台机器
 #
-# 基础系统 = 硬件无关的最小兜底（读盘 + 固件 + 双微码），任何机器都能进桌面；
-# 每台机器是一个 specialisation，指向 machines/ 里的完整组件组合。
+# 硬件全部下放到每台机器的 specialisation（machines/chen-*.nix：硬件探测 +
+# 手写尾巴）。基础系统只保留盘挂载（./disk.nix，3 台机器共用同一块盘），
+# 不带任何硬件兜底 —— 不选 specialisation 进不了桌面。
 { ... }:
 
 {
   imports = [
-    # 兜底底座（硬件无关）
-    ../../hardware/storage-usb.nix           # 读盘（USB 根盘）
-    ../../hardware/storage-nvme.nix          # 读盘（内盘 NVMe）
-    ../../hardware/common.nix                # 图形 + 固件 + 架构
-    ../../hardware/cpu-amd.nix               # 双微码（任何机器都能进）
-    ../../hardware/cpu-intel.nix
+    # 挂载（跟盘走；3 台机器共用同一块移动盘）
+    ./disk.nix
     # 系统服务（本安装特有）
     ./virtualisation.nix                     # podman
-    # 挂载（跟盘走）
-    ./disk.nix
     # 系统领域（各安装共用）
     ../../shared/boot.nix
     ../../shared/networking.nix

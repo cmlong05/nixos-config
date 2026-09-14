@@ -1,6 +1,6 @@
 # 盘：chen 的移动硬盘（3 台机器共用同一块盘）—— 本 os-disk 的「盘」部分
 # 只放"跟盘走"的行：fileSystems + swapDevices（按 UUID，随盘不随机）。
-# 读盘所需内核模块见 hardware/storage-usb.nix + storage-nvme.nix。
+# 读盘所需内核模块见各 machines/<机器>/hardware-configuration.nix（availableKernelModules）。
 { ... }:
 
 {

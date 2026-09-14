@@ -1,9 +1,9 @@
-# 员工机安装（msi-wd）—— 固定硬件，见 machines/employee-3600.nix
+# 员工机安装（msi-wd）—— 固定硬件，见 machines/employee-3600/
 { ... }:
 
 {
   imports = [
-    ../../machines/employee-3600.nix        # 机器组合（探测 + 底座 + CPU + GPU）
+    ../../machines/employee-3600            # 机器（生成硬件 + 手写尾巴）
     # 挂载（跟盘走；员工机内盘）
     ./disk.nix
     # 系统领域（各安装共用）

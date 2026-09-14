@@ -2,10 +2,9 @@
 # 本文件由作者机 disk.nix 复制而来，仅用于仓库求值/CI。
 # 员工机磁盘 UUID 与作者机必然不同，装 NixOS 时必须在员工机上执行：
 #   nixos-generate-config --root /mnt
-# 然后把生成的 hardware-configuration.nix 拆到对应原子：
-#   - fileSystems + swapDevices 覆盖本文件
-#   - 读盘模块（boot.initrd.availableKernelModules）→ hardware/storage-nvme.nix
-#   - hostPlatform / not-detected → hardware/common.nix
+# 然后把生成的 hardware-configuration.nix 拆成两部分：
+#   - fileSystems + swapDevices 覆盖本文件（跟盘走）
+#   - 其余硬件探测 → machines/employee-3600/hardware-configuration.nix
 # 再 nixos-install --flake .#msi-wd（详见 DEPLOY.md）
 { ... }:
 
