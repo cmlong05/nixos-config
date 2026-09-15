@@ -10,6 +10,8 @@
   services.openssh = {
     enable = true;
     settings = {
+      # 默认端口从 22 改为 555（连接时需 ssh -p 555 user@host）
+      Port = 555;
       # 禁止 root 直接登录（局域网内也建议，root 走 sudo）
       PermitRootLogin = "no";
       # 局域网内保留密码登录；若要公网暴露请改成 false
