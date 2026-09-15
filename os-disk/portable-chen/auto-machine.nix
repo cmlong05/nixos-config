@@ -19,11 +19,20 @@
 # ⚠️ 只在开机路径上动手：激活会把「新增单元」拉起来，本单元第一次进入新配置时
 # 正是被那次激活启动的 —— 那里面再切一次就是并发切换（实测让激活报 failed）。
 # 所以脚本第一件事是检查有没有别的 switch-to-configuration 在跑，有就退出。
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 
 let
   detect = ../../scripts/detect-machine.sh;
+  setDefault = ../../scripts/set-default-entry.sh;
   keys = ../../machines/machine-keys.txt;
+
+  # 条目和 loader.conf 写在 $BOOT：配了 XBOOTLDR 分区就是它，否则是 ESP
+  # （boot-machine.nix 里有一份同样的算法：那处是同一份 config，只是部署期跑）
+  bootMount =
+    if config.boot.loader.systemd-boot.xbootldrMountPoint != null then
+      config.boot.loader.systemd-boot.xbootldrMountPoint
+    else
+      config.boot.loader.efi.efiSysMountPoint;
 in
 {
   systemd.services.auto-machine-specialisation = {
@@ -84,6 +93,26 @@ in
         echo "auto-machine: 认不出这台机器；留在当前系统（手动菜单照旧）"
         echo "auto-machine: 本机指纹见 scripts/detect-machine.sh --probes，可往 machines/machine-keys.txt 加行"
         exit 0
+      fi
+
+      # 顺手把**菜单默认条目**认对：盘插到没 rebuild 过的机器时，ESP 上的 default 还是
+      # 上一个机器的变体 —— 只靠部署期的 B 改不到。这里补一次（幂等：已经是目标就什么都不写），
+      # 于是"第一次插到新机器"之后，**下一次开机就是零操作**。
+      # 放在切换之前：即使下面的切换失败，下一次开机也已经落在对的机器上。
+      bash ${setDefault} --machine "$machine" --boot ${bootMount} || true
+
+      # 尊重"菜单里手选"：基础系统是救援入口（默认条目是变体，只有手选才进得来），
+      # 开机阶段跑在基础系统里 → 只改菜单默认条目，不把当前系统切走。
+      # 例外：plain `nh os switch` 也会让"运行中的系统"变成基础系统，那时系统已经 running ——
+      # 按文档 `systemctl restart auto-machine-specialisation` 是要切回变体的，所以放行。
+      if [ "$(readlink -f /run/current-system)" = "$(readlink -f /nix/var/nix/profiles/system)" ]; then
+        state="$(systemctl is-system-running 2> /dev/null || true)"
+        case "$state" in
+          starting | initializing)
+            echo "auto-machine: 菜单里手选了基础系统（救援入口），只改菜单默认条目，不切换"
+            exit 0
+            ;;
+        esac
       fi
 
       target="/nix/var/nix/profiles/system/specialisation/$machine"

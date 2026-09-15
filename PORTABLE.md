@@ -57,12 +57,14 @@ chen 的 3 台机器共用同一块移动硬盘（同一份 `/`、同一份 `/ho
     **已修（2026-09-14）**：这两块 + 整条链已加进 `disk.nix` → 基础条目现在可引导（见下面"救援入口"）；
     默认条目仍必须落在本机变体上 —— 否则只能进控制台、没有桌面。
   - **部署期**（`os-disk/portable-chen/boot-machine.nix`）：`nh os switch` 装完 bootloader 后
-    （`boot.loader.systemd-boot.extraInstallCommands`，root 在本机跑）读 DMI/CPU 指纹，把
-    `$BOOT/loader/loader.conf` 的 `default` 指向本机变体条目（按代号数值取最新一代）。认不出机器
-    只打日志、不改 loader.conf，且整段 `set +e` —— 绝不让 `nh os switch` 失败。
+    （`boot.loader.systemd-boot.extraInstallCommands`，root 在本机跑）读 DMI/CPU 指纹，调
+    `scripts/set-default-entry.sh` 把 `$BOOT/loader/loader.conf` 的 `default` 指向本机变体条目
+    （按代号数值取最新一代）。认不出机器只打日志、不改 loader.conf，且整段 `set +e` ——
+    绝不让 `nh os switch` 失败。
   - **运行期**（`os-disk/portable-chen/auto-machine.nix`，被各变体继承）：换到**没 rebuild 过**的
-    机器时默认条目还是上一个机器的变体，开机后一个 oneshot 调
-    `<变体>/bin/switch-to-configuration test` 切到对的那台。官方文档就是这个用法；`test`
+    机器时默认条目还是上一个机器的变体，开机后一个 oneshot **先调同一个
+    `set-default-entry.sh` 把菜单默认条目也改成本机**（幂等）→ 下一次开机零操作；**再**调
+    `<变体>/bin/switch-to-configuration test` 把当前这次切到对的那台。官方文档就是这个用法；`test`
     不重写 /boot、不动 profile。已经在正确变体里时按 `readlink /run/current-system` 比对直接退出。
     ⚠️ 该服务**故意不与 display-manager 建顺序关系**：`switch-to-configuration` 自己会
     start/restart 一批单元（含 display-manager），把它排在我们之前会形成环，排在我们之后则它的
@@ -94,6 +96,19 @@ chen 的 3 台机器共用同一块移动硬盘（同一份 `/`、同一份 `/ho
     而不是机器属性；`disk.nix` 原来的第 3 行（"读盘模块看各 machines/…"）据此改写。
     验证：新基础 initrd 里 `uas.ko` / `usb-storage.ko` / `btrfs.ko` / `xhci-pci.ko` 都在；
     三个变体照旧（继承基础再叠加本机硬件，模块取并集）。**未做真机重启验证**（需下次重启选基础条目）。
+- **2026-09-15 补（真机踩到）：把盘带到台式机，开机菜单**没有**自动选对，还得手选。** 原因：
+  `loader.conf` 的 `default` 是**部署期**写在 ESP 上的文件，只反映**最后一次跑 `nh os switch` 的
+  那台机器**；把盘插到别的机器，菜单在系统启动前就被读了，系统里改不了这一次的菜单。当日志证明
+  用户是**手选**了 chen-desktop（`auto-machine: 已经在 chen-desktop 里，无需切换`），A 因此无事可做。
+  两件事落地：
+  1. 找条目/改 `default` 的逻辑抽成 `scripts/set-default-entry.sh`（纯 bash、幂等、永不失败；
+     A/B 共用），B 不再内联 ls/sort/sed。
+  2. **A 现在在开机时也补写菜单默认条目**（在切换之前做，切失败也照样生效）→ 首次插到没部署过的
+     机器：当前这次自动切对 + 菜单默认条目改成这台机器 → **下一次开机零操作**。幂等：已经是目标
+     条目就什么都不写；`$BOOT` 只读/认不出机器时只打日志。
+  验证：脚本单测（改条目 / 幂等 / 换机器 / 认不出的机器 / 无参数 / 只读 ESP 全部符合预期）、
+  非 root 实跑渲染出的 unit 脚本（优雅失败、exit 0）、假激活进程下守卫命中跳过、两个 host 全量构建通过。
+  **未做真机重启验证**（下次重启时可验：先故意把 default 改回别的机器再重启，不碰菜单）。
 
 ## C. 仍需拍板
 

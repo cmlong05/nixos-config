@@ -15,41 +15,29 @@
 
 let
   detect = ../../scripts/detect-machine.sh;
+  setDefault = ../../scripts/set-default-entry.sh;
   keys = ../../machines/machine-keys.txt;
 
   # 条目和 loader.conf 写在 $BOOT：配了 XBOOTLDR 分区就是它，否则是 ESP
+  # （auto-machine.nix 里有一份同样的算法：那处从运行中的 config 取）
   bootMount =
     if config.boot.loader.systemd-boot.xbootldrMountPoint != null then
       config.boot.loader.systemd-boot.xbootldrMountPoint
     else
       config.boot.loader.efi.efiSysMountPoint;
-
-  coreutils = "${pkgs.coreutils}/bin";
 in
 {
   boot.loader.systemd-boot.extraInstallCommands =
     ''
       # 这段会拼进 bootloader 安装脚本（set -euo pipefail）的末尾，任何失败都会让
-      # `nh os switch` 失败 —— 所以整段 set +e：认不出机器/找不到条目时只打日志，
-      # 绝不影响安装与开关机（默认条目留在基础系统，开机后由方案 A 兜底）。
+      # `nh os switch` 失败 —— 所以整段 set +e，认不出机器时只打日志、不动 loader.conf。
       set +e
       machine="$(${pkgs.bash}/bin/bash ${detect} --table ${keys} 2>/dev/null)"
       if [ -z "$machine" ]; then
         echo "portable-chen: 认不出本机（scripts/detect-machine.sh --probes 看指纹，往 machines/machine-keys.txt 加行），默认条目留在基础系统" >&2
       else
-        # 同一台机器会有历代条目，按「代号」数值排序取最新的一代（= 刚 rebuild 出来的那代）；
-        # 条目名形如 nixos-generation-<代号>-specialisation-<机器>.conf
-        entry="$(${coreutils}/ls -1 ${bootMount}/loader/entries/*-specialisation-"$machine".conf 2>/dev/null | ${coreutils}/sort -t- -k3,3n | ${coreutils}/tail -n1)"
-        if [ -n "$entry" ]; then
-          id="$(${coreutils}/basename "$entry")"
-          if ${pkgs.gnused}/bin/sed -i "s|^default .*|default $id|" ${bootMount}/loader/loader.conf; then
-            echo "portable-chen: 默认启动条目 → $id（本机 = $machine）"
-          else
-            echo "portable-chen: 改 ${bootMount}/loader/loader.conf 失败，默认条目不变" >&2
-          fi
-        else
-          echo "portable-chen: 没找到 $machine 的启动条目，默认条目不变" >&2
-        fi
+        # 找条目 + 改 default 的逻辑在 scripts/set-default-entry.sh（与 A 共用同一份实现）
+        ${pkgs.bash}/bin/bash ${setDefault} --machine "$machine" --boot ${bootMount}
       fi
     '';
 }

@@ -85,10 +85,11 @@ nixos-config/
     └── packages.nix             # 系统级基础软件（含 vim —— root/救援也要用）
 ```
 
-另有一个不在 `shared/` 里的脚本（被上面两个"认机器"模块调用，也可手动跑）：
+另有两个不在 `shared/` 里的脚本（被上面两个"认机器"模块调用，也可手动跑）：
 
 ```
 scripts/detect-machine.sh        # 认机器：读 DMI/CPU 指纹查 machines/machine-keys.txt
+scripts/set-default-entry.sh     # 把 $BOOT/loader/loader.conf 的 default 指向本机变体（幂等）
 ```
 
 ## 机器 ↔ 硬件映射
@@ -200,18 +201,22 @@ home-manager --rollback
   （没有显卡驱动），所以它是**救援入口**（`nh os switch -S` 后重启，或菜单里手选基础条目）；
   `chen-desktop` / `chen-laptop-amd` / `chen-laptop-intel` 是**开机菜单里的机器变体**，换机器零命令。
   ⚠️ 代价：每个变体多出一份系统闭包（共享的包不重复，额外≈差异部分）。
-- **机器变体自动选（2026-09-14）**：菜单"选哪条"是 bootloader 的事，系统里改不了 →
-  两段式，都靠 `machines/machine-keys.txt`（指纹表）+ `scripts/detect-machine.sh` 认机器：
+- **机器变体自动选（2026-09-14，2026-09-15 补运行期也改菜单）**：菜单"选哪条"是 bootloader
+  的事，系统里改不了 → 两段式，都靠 `machines/machine-keys.txt`（指纹表）+
+  `scripts/detect-machine.sh` 认机器，找条目/改 `loader.conf` 的活儿在
+  `scripts/set-default-entry.sh`（A/B 共用同一份实现）：
   - **部署期** `os-disk/portable-chen/boot-machine.nix`：`nh os switch` 装完 bootloader 之后
     （`extraInstallCommands`）读本机 DMI/CPU，把 `loader.conf` 的 `default` 指向**本机变体**条目
     → 开机倒计时（`boot.loader.timeout`，默认 5s）结束直接进本机。**不做这一步默认条目就是基础系统：
-    能进控制台，但没有显卡驱动（进不了桌面）** —— 这就是"每次开机都得手选"的根源。
+    能进控制台，但没有显卡驱动（进不了桌面）**。
   - **运行期** `os-disk/portable-chen/auto-machine.nix`：把盘插到**没 rebuild 过**的机器上时，
-    默认条目是上一个机器的变体；开机后一个 oneshot 服务
-    调它继承来的 `.../specialisation/<机器>/bin/switch-to-configuration test` 切到对的那台
-    （`test` 只激活，不重写 /boot、不动 profile；已在正确变体里时是空操作），切完把
-    `display-manager` 重启一次。⚠️ 故意不与 `display-manager` 建顺序关系（`switch-to-configuration`
-    自己会 start/restart 它，排前/排后都会形成环），所以这一路径上桌面会闪一下。
+    ESP 上的 `default` 还是上一个机器的变体；开机后一个 oneshot 服务
+    （1）先把它**改成本机变体条目**（幂等，`set-default-entry.sh`）→ **下一次开机就零操作**；
+    （2）再调 `.../specialisation/<机器>/bin/switch-to-configuration test` 把**当前这次**也切到
+    对的那台（`test` 只激活，不重写 /boot、不动 profile；已在正确变体里时是空操作），
+    切完把 `display-manager` 重启一次。
+    ⚠️ 故意不与 `display-manager` 建顺序关系（`switch-to-configuration` 自己会 start/restart 它，
+    排前/排后都会形成环），所以这一路径上桌面会闪一下。
     ⚠️ 也只在**开机**路径上动手：激活会把「新增单元」拉起来，本单元第一次进新配置时正是被那次激活
     启动的 —— 里面再切一次就是并发切换（实测会让 `nh os switch` 报 `auto-machine-specialisation.service`
     failed、退出码 4）。所以脚本先扫 `/proc/*/exe`：有进程的可执行文件是 `switch-to-configuration`
