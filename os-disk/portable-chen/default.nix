@@ -42,5 +42,8 @@
 
   networking.hostName = "portable-chen";
 
+  # 本机 sshd 端口（覆盖 shared/ssh.nix 的默认值 22）
+  my.ssh.port = 555;
+
   system.stateVersion = "26.05";
 }
