@@ -1,6 +1,7 @@
 # nix build 产物
 /result
 /result-*
+/.tmp-home
 
 # direnv / nix-direnv
 .direnv/
