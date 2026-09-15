@@ -51,10 +51,11 @@ chen 的 3 台机器共用同一块移动硬盘（同一份 `/`、同一份 `/ho
 - 若将来某台机器的差异超出"显卡变体"的范围（例如需要不同的用户/服务），那才应该另开独立 host。
 - **2026-09-14 补：菜单条目「自动选」= 部署期 + 运行期两段式。**（开机菜单选哪条是 bootloader
   的事，任何系统内代码都改不了；`boot.loader.timeout = 0` 也只能自动进**默认条目**。）
-  - 实测硬事实：**基础系统条目在这块盘上起不来** —— 基础 initrd 里只有 `xhci-pci / sd_mod / nvme`，
-    没有 `usb-storage.ko` / `uas.ko`（读盘模块按设计放在各 `machines/<机器>/hardware-configuration.nix`），
-    而这块 JMicron 桥走 uas。三个变体的 initrd 都有 `usb-storage.ko + uas.ko` → 都能正常起。
-    所以"默认条目 = 基础系统"等于"倒计时一过就起不来"，必须让它落在变体上。
+  - 实测硬事实：基础 initrd 只带主控/SCSI 层（`xhci-pci / ehci-pci / usbhid / sd_mod / ahci / nvme`）
+    和 `btrfs`（由 fileSystems 自动带上），**没有 USB 大容量存储类驱动**（`uas.ko` / `usb-storage.ko`）
+    —— 而这块 JMicron 152d 桥走 uas，所以**基础条目当时挂不上根、起不来**（变体各自带那两块，能起）。
+    **已修（2026-09-14）**：这两块 + 整条链已加进 `disk.nix` → 基础条目现在可引导（见下面"救援入口"）；
+    默认条目仍必须落在本机变体上 —— 否则只能进控制台、没有桌面。
   - **部署期**（`os-disk/portable-chen/boot-machine.nix`）：`nh os switch` 装完 bootloader 后
     （`boot.loader.systemd-boot.extraInstallCommands`，root 在本机跑）读 DMI/CPU 指纹，把
     `$BOOT/loader/loader.conf` 的 `default` 指向本机变体条目（按代号数值取最新一代）。认不出机器
@@ -87,9 +88,12 @@ chen 的 3 台机器共用同一块移动硬盘（同一份 `/`、同一份 `/ho
   - 兜底：认不出 → 只打日志，退化为"变体条目 + 手动菜单"，不会卡启动；`journalctl -u
     auto-machine-specialisation -b` 看结果。想手工切：`sudo systemctl restart
     auto-machine-specialisation`（或直接跑上面那条 `switch-to-configuration test`）。
-  - 可选加固（**未做**，属于另一个决定）：把 `usb-storage`/`uas`/`xhci_pci` 也加进基础系统
-    （`os-disk/portable-chen/disk.nix`），基础条目就能起来、成为真正的救援入口。
-    现在 `disk.nix` 第 3 行明确把这几个模块"按机器"放在 machines 里，故未擅自改。
+  - **已做（2026-09-14）：基础系统改成可引导的控制台救援入口。** 读盘模块
+    （`uas` / `usb_storage` / `xhci_pci` / `ehci_pci` / `usbhid` / `sd_mod`）放进
+    `os-disk/portable-chen/disk.nix` —— 理由是"能不能挂上这块盘"属**盘**的属性（换哪台机器都一样），
+    而不是机器属性；`disk.nix` 原来的第 3 行（"读盘模块看各 machines/…"）据此改写。
+    验证：新基础 initrd 里 `uas.ko` / `usb-storage.ko` / `btrfs.ko` / `xhci-pci.ko` 都在；
+    三个变体照旧（继承基础再叠加本机硬件，模块取并集）。**未做真机重启验证**（需下次重启选基础条目）。
 
 ## C. 仍需拍板
 
@@ -115,8 +119,11 @@ chen 的 3 台机器共用同一块移动硬盘（同一份 `/`、同一份 `/ho
 - **BitLocker**：内盘 Windows 已加密，不要为双系统去改 BIOS 的 Secure Boot/TPM/启动顺序，否则要恢复密钥。
 - **移动盘不做磁盘 swap**：`os-disk/portable-chen/` 只有 zram（`swap.nix`），盘上的 swap 分区保留但**不启用**。
   **永远不要**给这块盘配休眠 / `boot.resumeDevice` —— 3 台机器共用一份 `/`，A 机写下的内存镜像在 B 机 resume 会错乱。
+- **基础系统 = 控制台救援入口**（2026-09-14 起）：`nh os switch -S` 后重启，或在菜单里手选基础条目，
+  可进一个能挂盘、能改配置/`nixos-rebuild` 的系统；**它没有显卡驱动，别指望桌面**。
+  进不去时先看它的 initrd 是否含 `uas.ko` + `usb-storage.ko`（读盘模块在 `disk.nix`）。
 - 日常命令：`bootctl status` 与 `sudo ls /boot/loader/entries` 查启动条目，
   `sudo grep default /boot/loader/loader.conf` 看默认条目（正常应指向**本机变体**）；
   `scripts/detect-machine.sh [--probes]` 认机器 / 看本机指纹；
-  `nh os switch .#portable-chen -s chen-laptop-intel` 指定机器变体，`-S` 回到基础系统；
+  `nh os switch .#portable-chen -s chen-laptop-intel` 指定机器变体，`-S` 回到基础系统（救援入口）；
   `sudo systemctl restart auto-machine-specialisation` 让运行中的系统立刻切回本机变体。

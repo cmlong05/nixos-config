@@ -52,7 +52,7 @@ nixos-config/
 │   │   ├── machine_spe.nix      # 机器变体（specialisation：chen-desktop / laptop-amd / laptop-intel）
 │   │   ├── boot-machine.nix     # 认机器（部署期）：把默认启动条目指向本机变体
 │   │   ├── auto-machine.nix     # 认机器（运行期）：换机器后开机自动切到对应变体
-│   │   ├── disk.nix             # 挂载（fileSystems，跟盘走；故意不含 swapDevices）
+│   │   ├── disk.nix             # 盘：挂载 + 读盘 initrd 模块（跟盘走；故意不含 swapDevices）
 │   │   ├── swap.nix             # swap 策略（zram 独占，不写移动盘）
 │   │   ├── users.nix            # 用户点名单（chen）
 │   │   └── virtualisation.nix   # podman
@@ -99,9 +99,9 @@ nh os switch
 scripts/detect-machine.sh            # 打印本机对应的变体名
 scripts/detect-machine.sh --probes   # 打印本机指纹（给 machine-keys.txt 加新机器时用）
 nh os switch -s chen-laptop-intel    # 手动把「运行中的系统」切到指定变体
-nh os switch -S                      # 忽略变体，回到基础系统
+nh os switch -S                      # 忽略变体，回到基础系统（控制台救援入口）
 
-# 注意：plain `nh os switch` 会让「运行中的系统」回到基础系统（基础不带硬件，没桌面）；
+# 注意：plain `nh os switch` 会让「运行中的系统」回到基础系统（只有控制台，没桌面）；
 # 不想重启就切回本机变体：sudo systemctl restart auto-machine-specialisation
 
 # 更新锁定输入
@@ -127,16 +127,17 @@ nix flake check
   NVIDIA 驱动 / 固件 / 图形 / 蓝牙，写进 `machines/<机器>/default.nix`（imports 上面）。
   挂载行（fileSystems/swapDevices）跟盘走，放 `os-disk/<name>/disk.nix`。
   `--no-filesystems` 是省事关键：产物天然不含 fileSystems/swap，无需手工"砍"。
-- **便携盘用 specialisation，不用多 host**：`os-disk/portable-chen` 的基础系统只带盘挂载、
-  不带机器硬件（它的 initrd 里**没有 USB 读盘模块** → 基础条目在这块盘上挂不上根，起不来）；
+- **便携盘用 specialisation，不用多 host**：`os-disk/portable-chen` 的基础系统只带盘
+  （挂载 + 读盘 initrd 模块，见 `disk.nix`）、不带机器硬件 → **能引导，但只有控制台**
+  （没有显卡驱动），所以它是**救援入口**（`nh os switch -S` 后重启，或菜单里手选基础条目）；
   `chen-desktop` / `chen-laptop-amd` / `chen-laptop-intel` 是**开机菜单里的机器变体**，换机器零命令。
   ⚠️ 代价：每个变体多出一份系统闭包（共享的包不重复，额外≈差异部分）。
 - **机器变体自动选（2026-09-14）**：菜单"选哪条"是 bootloader 的事，系统里改不了 →
   两段式，都靠 `machines/machine-keys.txt`（指纹表）+ `scripts/detect-machine.sh` 认机器：
   - **部署期** `os-disk/portable-chen/boot-machine.nix`：`nh os switch` 装完 bootloader 之后
     （`extraInstallCommands`）读本机 DMI/CPU，把 `loader.conf` 的 `default` 指向**本机变体**条目
-    → 开机倒计时（`boot.loader.timeout`，默认 5s）结束直接进本机。**不做这一步默认条目就是基础系统，
-    而基础系统挂不上盘** —— 这就是"每次开机都得手选"的根源。
+    → 开机倒计时（`boot.loader.timeout`，默认 5s）结束直接进本机。**不做这一步默认条目就是基础系统：
+    能进控制台，但没有显卡驱动（进不了桌面）** —— 这就是"每次开机都得手选"的根源。
   - **运行期** `os-disk/portable-chen/auto-machine.nix`：把盘插到**没 rebuild 过**的机器上时，
     默认条目是上一个机器的变体；开机后一个 oneshot 服务
     调它继承来的 `.../specialisation/<机器>/bin/switch-to-configuration test` 切到对的那台

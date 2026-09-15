@@ -5,9 +5,9 @@
 # rebuild 过」的机器时，默认条目仍是**上一个机器**的变体条目 —— 这个 oneshot 就负责
 # 从那个变体里切到对的那台。
 #
-# ⚠️ 它跑在「变体」里，不是基础系统里：基础系统的 initrd 不含 USB 读盘模块
-# （读盘模块按设计放在各 machines/<机器>/hardware-configuration.nix），
-# 所以基础系统条目根本挂不上这块盘。变体都在，能被 specialisation 继承 —— 见下。
+# 它在两个地方都会跑：基础系统（控制台救援入口，读盘模块见 ./disk.nix）和每个变体
+# （specialisation 的 inheritParentConfig 默认 true 会继承）。所以「已经在正确变体里」
+# 时必须是安全的空操作 —— 见下面 readlink 比对；从基础系统里跑也能救回桌面。
 #
 # 切法就是 NixOS 官方给 specialisation 的用法：
 #     <变体>/bin/switch-to-configuration test
