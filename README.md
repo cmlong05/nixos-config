@@ -20,7 +20,9 @@
 > chen 的硬件差异**不用多个 host**，而用 `specialisation`：基础系统只带盘挂载、不带硬件兜底，
 > 每台机器对应菜单里的一条 `chen-desktop` / `chen-laptop-amd` / `chen-laptop-intel`。
 > 选哪条由硬件指纹自动决定（部署期把默认条目指向本机 + 运行期兜底，见 `os-disk/portable-chen/boot-machine.nix`
-> 与 `auto-machine.nix`），换机器**零命令**；菜单里手动选也照旧可用。
+> 与 `auto-machine.nix`），换机器**零命令**；菜单里手动选也照旧可用。默认条目写两个地方：
+> **本机 NVRAM 的 EFI 变量 `LoaderEntryDefault`**（跟机器走 → 每台机器各自记住自己的变体）+
+> 盘上 `loader.conf` 的 `default`（跟盘走 → 兜底）。
 
 ## 目录结构
 
@@ -30,7 +32,7 @@ nixos-config/
 ├── users/                       # 用户维度：账户（系统侧）+ home（用户侧）+ 用户域共享模块
 │   ├── chen/                    # 作者
 │   │   ├── default.nix          # 账户属性（系统侧，无 home-manager 绑定）
-│   │   ├── home.nix             # home 入口（shell + apps + llm + 个人应用）
+│   │   ├── home.nix             # home 入口（shell + apps + llm + 远程桌面 + 个人应用）
 │   │   ├── apps.nix             # 仅 chen 的 Nix 应用（li-ri）
 │   │   └── flatpak.nix          # 仅 chen 的 Flatpak（QQ / tuxmath，--user 安装）
 │   ├── mubimuba/                # 员工
@@ -44,6 +46,7 @@ nixos-config/
 │       ├── shell.nix            # bash + direnv
 │       ├── apps.nix             # 用户级共享应用包 = "每个用户都要的基础软件"的统一位置
 │       ├── llm.nix              # llm-agents 工具（dsh / reasonix，仅 chen）
+│       ├── remote-desktop.nix   # KDE 远程桌面（KRDP/RDP）用户级：krdpserverrc + 用户服务
 │       └── standalone.nix       # standalone 模式适配（PATH：~/.nix-profile → 本代 home-path）
 ├── machines/                    # 机器维度：每台实体机器一个目录
 │   ├── machine-keys.txt         # 机器指纹表（DMI 型号/主板/CPU → 变体名；认机器只看它）
@@ -77,6 +80,7 @@ nixos-config/
     ├── boot.nix                 # systemd-boot + 内核
     ├── networking.nix           # NetworkManager
     ├── ssh.nix                  # SSH 远程访问（局域网内 sshd，两 host 共用）
+    ├── remote-desktop.nix       # KDE 远程桌面（KRDP/RDP）系统侧：防火墙放行（包由 plasma6 自带）
     ├── nix.nix                  # 缓存源 / flakes / nh / allowUnfree
     ├── locale.nix               # 时区 / locale / fcitx5 / 字体
     ├── desktop.nix              # SDDM + Plasma 6 / Firefox / PipeWire
@@ -89,7 +93,8 @@ nixos-config/
 
 ```
 scripts/detect-machine.sh        # 认机器：读 DMI/CPU 指纹查 machines/machine-keys.txt
-scripts/set-default-entry.sh     # 把 $BOOT/loader/loader.conf 的 default 指向本机变体（幂等）
+scripts/set-default-entry.sh     # 把本机变体写成开机默认条目：本机 NVRAM 的 EFI 变量
+                                 # LoaderEntryDefault + 盘上 loader.conf 的 default（幂等、永不失败）
 ```
 
 ## 机器 ↔ 硬件映射
@@ -105,7 +110,9 @@ nh os switch
 # 指定主机（员工机）
 nh os switch --flake .#msi-wd
 
-# 便携盘：机器变体自动选 —— 部署期认本机指纹，把默认启动条目指向本机变体，
+# 便携盘：机器变体自动选 —— 部署期认本机指纹，把默认启动条目写成「本机变体」：
+# 一份进本机 NVRAM 的 EFI 变量 LoaderEntryDefault（跟机器走 → 每台机器各自记住自己，
+# 来回换机器不用再手选，别的机器上 rebuild 也改不到它），一份进盘上的 loader.conf（兜底）。
 # 所以 `nh os switch` 后直接重启就是本机桌面（开机零选择，菜单 5 秒内仍可手动选）
 nh os switch
 
@@ -191,6 +198,36 @@ home-manager --rollback
   不必 sudo、不触发系统 switch（也就不会把运行中的系统打回 specialisation 基础系统），
   且用户自己掌握家目录世代与回滚。代价：装机后各人自跑一次 `nh home switch`；
   PATH 由 `users/modules/standalone.nix` 兜（详见"用户级构建"一节）。
+- **KDE 远程桌面（KRDP/RDP，2026-09-15）**：服务本体是**用户级**的 `krdpserver`（Plasma 6 自带，
+  图形入口「系统设置 → 远程桌面」），所以整套在 `users/modules/remote-desktop.nix`：写
+  `~/.config/krdpserverrc` + 在 `~/.config/systemd/user` 放同名单元
+  `app-org.kde.krdpserver.service`（上游 krdp 仓库把它 preset 成永不默认启用，见其
+  `server/00-krdp.preset`）
+  + `plasma-workspace.target` 的 want 链接 = 登录自启。系统侧 `shared/remote-desktop.nix` 只做
+  一件事：防火墙放行（krdp 包本身由 `services.desktopManager.plasma6.enable` 自带 —— 它在
+  nixpkgs plasma6 模块的 `optionalPackages` 里，krdpserver / kcm_krdpserver / 上游单元都出自
+  那一个包；用户侧 ExecStart 直接引用 store 路径，所以不靠系统包装没装）。
+  **端口因此要写两处** —— `os-disk/portable-chen/default.nix`
+  （系统侧，只影响防火墙）与 `users/chen/home.nix`（用户侧，真的监听），只改一处会出现
+  "服务在听一个端口、防火墙只放另一个"。几个坑（文件注释里有展开）：
+  - 单元名不能改：portal 靠 systemd 单元的 `app-` 前缀识别调用者 id `org.kde.krdpserver`，
+    KCM 也按这个名字经 systemd D-Bus 开关服务；
+  - `krdpserverrc` 必须是**可写真实文件**：KConfig 是"就地写、跟随符号链接"，store 符号链接会让
+    KCM 保存失败 → 用 `home.activation` + `install` 写；代价是 KCM 里改的端口/设置会被下次
+    `nh home switch` 覆盖回声明值；
+  - 证书：`Server::start()` 在证书文件缺失时**直接拒绝启动**（不是文档说的"临时自签"），而 KCM
+    生成用的是 `-days 1`（本机 8/29 那份 8/30 就过期了）→ ExecStartPre 自己签 10 年的（缺/过期才签）；
+  - 无人值守：多一个 oneshot `krdp-portal-authorize`，在服务前把 `org.kde.krdpserver` 预授权给
+    portal（等价 `flatpak permission-set kde-authorized remote-desktop org.kde.krdpserver yes`，
+    也是 KCM 打开开关时做的事），否则第一次连接会在**本机屏幕**上弹授权框；
+  - 认证走 PAM（`SystemUserEnabled=true` → `/etc/pam.d/login`，即系统账号密码），不往 KWallet 存密码；
+  - ⚠️ 服务开着 = 物理无人时也能被远程接管桌面，而且远程登录时本机屏幕也是解锁的；按"局域网内
+    可信 + 高位端口"来用，别把端口映射到公网。
+- **ssh 端口与防火墙（2026-09-15 修）**：`shared/ssh.nix` 原来只写 `services.openssh.settings.Port`，
+  而 sshd 的监听端口与防火墙放行都看 `services.openssh.ports`（默认 `[22]`）→ 现象是 sshd
+  同时监听 555 **和** 22、防火墙只放 22，`ssh -p 555` 从别的机器连不上（`-p 22` 反而能连）。
+  现在改成 `ports = [ cfg.port ]`（openFirewall 默认 true，自动带上放行）：**sshd 只监听 555、
+  防火墙也只放 555**。⚠️ 22 从此不再监听也不再放行 —— 要回到标准端口就 `my.ssh.port = 22;`。
 - **生成与手写分离**：`nixos-generate-config --no-filesystems` 的产物**原样**放
   `machines/<机器>/hardware-configuration.nix`（勿手改，重生成即覆盖）；生成器不产出的
   NVIDIA 驱动 / 固件 / 图形 / 蓝牙，写进 `machines/<机器>/default.nix`（imports 上面）。
@@ -205,17 +242,26 @@ home-manager --rollback
   **目标机上**跑 `nh os switch --flake .#<host>`，而且菜单里"另一台"的条目只是**最后一次激活时的
   过期快照** —— 菜单能让你回到过去，却切不到另一台的当前配置。若将来某台机器的差异超出
   "显卡变体"范围（例如要不同的用户/服务），那才该另开独立 host。
-- **机器变体自动选（2026-09-14，2026-09-15 补运行期也改菜单）**：菜单"选哪条"是 bootloader
-  的事，系统里改不了 → 两段式，都靠 `machines/machine-keys.txt`（指纹表）+
-  `scripts/detect-machine.sh` 认机器，找条目/改 `loader.conf` 的活儿在
-  `scripts/set-default-entry.sh`（A/B 共用同一份实现）：
+- **机器变体自动选（2026-09-14 两段式；2026-09-15 补运行期也改；2026-09-15 改存本机 NVRAM）**：
+  菜单"选哪条"是 bootloader 的事、系统里改不了 → 两段式，都靠 `machines/machine-keys.txt`（指纹表）
+  + `scripts/detect-machine.sh` 认机器，找条目/写默认条目的活儿在 `scripts/set-default-entry.sh`
+  （A/B 共用同一份实现）。默认条目写**两个目的地**：
+  - **本机 NVRAM**（主记忆）：EFI 变量 `LoaderEntryDefault`。systemd-boot 优先用它、覆盖
+    `loader.conf`（`loader.conf(5)`：default 可以在菜单里改，改了就存成 EFI 变量，
+    "overriding this option"）。它在**主板**上、跟机器走不跟盘走 → **每台机器各自记住自己的变体**：
+    第一次在那台机器上开过机之后，来回换机器都不用再手选，在别的机器上 rebuild 也改不到它
+    （盘上那份会被改）。⚠️ 第一次到某台机器（从没种过这个变量）仍需手选一次 —— 原理限制：
+    菜单在任何系统代码之前就定了，那时读不到 DMI。
+  - **盘上 `$BOOT/loader/loader.conf`**（兜底）：跟盘走。NixOS 的 builder 每次 rebuild 都会先把它
+    重写成**基础系统**条目，所以 B/A 每次都得补写；没有 NVRAM（固件不给写变量 / NVRAM 被清）时
+    全靠这一份。
   - **部署期** `os-disk/portable-chen/boot-machine.nix`：`nh os switch` 装完 bootloader 之后
-    （`extraInstallCommands`）读本机 DMI/CPU，把 `loader.conf` 的 `default` 指向**本机变体**条目
+    （`extraInstallCommands`，排在 builder 之后）读本机 DMI/CPU，把**本机变体**写成默认条目（两处）
     → 开机倒计时（`boot.loader.timeout`，默认 5s）结束直接进本机。**不做这一步默认条目就是基础系统：
     能进控制台，但没有显卡驱动（进不了桌面）**。
   - **运行期** `os-disk/portable-chen/auto-machine.nix`：把盘插到**没 rebuild 过**的机器上时，
-    ESP 上的 `default` 还是上一个机器的变体；开机后一个 oneshot 服务
-    （1）先把它**改成本机变体条目**（幂等，`set-default-entry.sh`）→ **下一次开机就零操作**；
+    默认条目还是上一个机器的；开机后一个 oneshot 服务
+    （1）先按本机指纹写默认条目（两个目的地，幂等）→ 那之后每次开机都零操作；
     （2）再调 `.../specialisation/<机器>/bin/switch-to-configuration test` 把**当前这次**也切到
     对的那台（`test` 只激活，不重写 /boot、不动 profile；已在正确变体里时是空操作），
     切完把 `display-manager` 重启一次。
@@ -263,10 +309,27 @@ home-manager --rollback
   仓库目前**两处都没设** —— 定下来之前别只改一半。
 - **Intel 内显无 VA-API 硬解**：`/run/opengl-driver/lib` 里没有 `iHD` / `vpl`，视频解码全走 CPU。
   修法（取消一行注释即可）写在 `machines/chen-laptop-intel/default.nix`。
-- **两处只做了构建/脚本验证，没做真机重启验证**：
+- **只做了构建/脚本验证，没做真机重启验证**：
   1. 基础系统当救援入口（`nh os switch -S` 后重启，或在菜单里手选基础条目，确认能挂盘、能重建）；
-  2. 运行期补写菜单默认条目（先把 `/boot/loader/loader.conf` 的 `default` 故意改回别的机器，
-     重启且**不碰菜单**，看是否自动落到本机变体 + 默认条目被改写）。
+  2. 运行期写默认条目：**"写"这半步已实测**（2026-09-15 18:56 那次开机，journal 里
+     `set-default-entry: 盘上默认条目 nixos-generation-79-specialisation-chen-desktop.conf
+     → ...-laptop-amd.conf`）；**"下一次开机不碰菜单真的按它预选"还没验**（要一次不碰键的重启）。
+  3. EFI 变量 `LoaderEntryDefault`（本机 NVRAM）：脚本层面已沙箱验证（首次写 / 幂等 / 固件拒绝 /
+     `bootctl` 不存在 都不影响退出码），**还没在这台固件上真写过**，也没验过 systemd-boot 是否吃它
+     （`bootctl status` 报 `Default entry control ✓`，但只有重启才算数）。
+  4. 悬空变量：EFI 变量钉的是带代数的条目 id。若那台机器长期不回去、那一代又被 `nh clean` 删掉，
+     那次开机会退化成 systemd-boot 自己的排序结果（**未实测**，可能落到没显卡驱动的基础系统）；
+     下次在那台机器开机时 A 会按"存在的最大代"重写变量自愈。
+  5. ⚠️ 开机菜单里按 `d` 会把当前高亮那条写成 `LoaderEntryDefault`（写在本机 NVRAM 上，换机器也带着）。
+     两个方向都成立：它覆盖我们写的值；下次开机 A 又会按本机指纹把它改回本机变体。
+     想长期钉住别的条目，得先停掉这个服务：`sudo systemctl disable --now auto-machine-specialisation`。
+- **RDP 只做了构建/脚本验证，没做真机连通验证（2026-09-15）**：已验证的是求值 + 构建
+  （`nix build .#homeConfigurations.chen.activationPackage`；`nix eval` 两个 host 的
+  `networking.firewall.allowedTCPPorts` = portable-chen `[22 59599]` / msi-wd `[22]`；
+  证书脚本在 /tmp 下试过"缺证书 / 有效证书 / 只剩不到一天"三条路径）。真正要验的是拿另一台
+  机器 `xfreerdp /v:<ip>:59599 /u:chen` 或 Windows 的 mstsc 连一次，确认三件事：防火墙放行
+  生效、PAM 认证能过、连接时本机屏幕不弹授权框。另注意 `nh home switch` 会重写
+  `~/.config/krdpserverrc`，所以端口/认证方式请在 nix 里改。
 
 ## 依赖输入
 

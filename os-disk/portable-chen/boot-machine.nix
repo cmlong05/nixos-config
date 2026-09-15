@@ -11,6 +11,13 @@
 # 效果：开机菜单 5 秒（boot.loader.timeout 默认）过后直接进本机变体 —— 和手动选
 # 那一条完全一样（启动变体自己的 kernel/initrd）。菜单里所有条目照旧可选。
 # 盘插到「没 rebuild 过」的机器上时，由 auto-machine.nix 兜底。
+#
+# 写两个目的地（同一个脚本，见 scripts/set-default-entry.sh 的头注释）：
+#   1) 本机 NVRAM 的 EFI 变量 LoaderEntryDefault —— 跟机器走、且 systemd-boot 优先用它，
+#      所以每台机器各自记住自己的变体，来回换机器不用再手选，别的机器上 rebuild 也改不到它；
+#   2) 盘上的 loader.conf —— 跟盘走，是没有 NVRAM（固件不给写 / 被清）时的兜底。
+# ⚠️ builder 每次 rebuild 都会先把 loader.conf 重写成**基础系统**条目，这一步必须排在
+# 它后面；`extraInstallCommands` 正好拼在安装脚本末尾。
 { config, pkgs, ... }:
 
 let
@@ -30,14 +37,18 @@ in
   boot.loader.systemd-boot.extraInstallCommands =
     ''
       # 这段会拼进 bootloader 安装脚本（set -euo pipefail）的末尾，任何失败都会让
-      # `nh os switch` 失败 —— 所以整段 set +e，认不出机器时只打日志、不动 loader.conf。
+      # `nh os switch` 失败 —— 所以整段 set +e，认不出机器时只打日志、两个目的地都不动。
       set +e
       machine="$(${pkgs.bash}/bin/bash ${detect} --table ${keys} 2>/dev/null)"
       if [ -z "$machine" ]; then
         echo "portable-chen: 认不出本机（scripts/detect-machine.sh --probes 看指纹，往 machines/machine-keys.txt 加行），默认条目留在基础系统" >&2
       else
-        # 找条目 + 改 default 的逻辑在 scripts/set-default-entry.sh（与 A 共用同一份实现）
-        ${pkgs.bash}/bin/bash ${setDefault} --machine "$machine" --boot ${bootMount}
+        # 找条目 + 写默认条目的逻辑在 scripts/set-default-entry.sh（与 A 共用同一份实现）。
+        # 两个目的地都写：本机 NVRAM 的 EFI 变量 LoaderEntryDefault（跟机器走 + 优先于
+        # loader.conf → 每台机器各自记住自己，换机器不用再手选）和盘上的 loader.conf
+        # （跟盘走，兜底）。builder 刚把 loader.conf 重写成基础系统条目，这里再改回来。
+        ${pkgs.bash}/bin/bash ${setDefault} --machine "$machine" --boot ${bootMount} \
+          --efi --bootctl ${pkgs.systemd}/bin/bootctl
       fi
     '';
 }

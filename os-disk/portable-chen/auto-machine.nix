@@ -5,6 +5,11 @@
 # rebuild 过」的机器时，默认条目仍是**上一个机器**的变体条目 —— 这个 oneshot 就负责
 # 从那个变体里切到对的那台。
 #
+# 它同时把本机变体写进**本机 NVRAM** 的 EFI 变量 LoaderEntryDefault（见下面 setDefault
+# 那段注释）：那才是「每台机器各自记住自己」的主记忆 —— loader.conf 在盘上，会被别的机器
+# 上跑的 rebuild 改走；NVRAM 跟机器走，改不动。变量在某台机器上种过之后，再回到那台机器
+# （哪怕中间在别的机器上 rebuild 过）第一次开机就直接落在本机变体上。
+#
 # 它在两个地方都会跑：基础系统（控制台救援入口，读盘模块见 ./disk.nix）和每个变体
 # （specialisation 的 inheritParentConfig 默认 true 会继承）。所以「已经在正确变体里」
 # 时必须是安全的空操作 —— 见下面 readlink 比对；从基础系统里跑也能救回桌面。
@@ -95,11 +100,15 @@ in
         exit 0
       fi
 
-      # 顺手把**菜单默认条目**认对：盘插到没 rebuild 过的机器时，ESP 上的 default 还是
-      # 上一个机器的变体 —— 只靠部署期的 B 改不到。这里补一次（幂等：已经是目标就什么都不写），
-      # 于是"第一次插到新机器"之后，**下一次开机就是零操作**。
-      # 放在切换之前：即使下面的切换失败，下一次开机也已经落在对的机器上。
-      bash ${setDefault} --machine "$machine" --boot ${bootMount} || true
+      # 顺手把**菜单默认条目**认对，两个目的地一起写（细节见 scripts/set-default-entry.sh）：
+      #   - 本机 NVRAM 的 EFI 变量 LoaderEntryDefault：跟机器走，且 systemd-boot 优先用它
+      #     → 每台机器各自记住自己的变体。第一次在那台机器开过机之后，来回换机器都不用
+      #     再手选；别的机器上 rebuild 也覆盖不到它（loader.conf 会 —— 它在盘上）。
+      #   - 盘上的 $BOOT/loader/loader.conf：跟盘走，是没有 NVRAM 时的兜底。
+      # 幂等：已经是目标就什么都不写。放在切换之前：即使下面的切换失败，下一次开机也已经
+      # 落在对的机器上。
+      bash ${setDefault} --machine "$machine" --boot ${bootMount} \
+        --efi --bootctl ${pkgs.systemd}/bin/bootctl || true
 
       # 尊重"菜单里手选"：基础系统是救援入口（默认条目是变体，只有手选才进得来），
       # 开机阶段跑在基础系统里 → 只改菜单默认条目，不把当前系统切走。
