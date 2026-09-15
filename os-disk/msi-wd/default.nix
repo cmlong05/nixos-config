@@ -10,6 +10,8 @@
     ../../shared/boot.nix
     ../../shared/networking.nix
     ../../shared/ssh.nix
+    # 远程桌面（KRDP/RDP）：只提供选项，员工机默认不开（enable 默认 false）
+    ../../shared/remote-desktop.nix
     ../../shared/nix.nix
     ../../shared/locale.nix
     ../../shared/desktop.nix

@@ -25,6 +25,7 @@
     ../../shared/boot.nix
     ../../shared/networking.nix
     ../../shared/ssh.nix
+    ../../shared/remote-desktop.nix
     ../../shared/nix.nix
     ../../shared/locale.nix
     ../../shared/desktop.nix
@@ -44,6 +45,14 @@
 
   # 本机 sshd 端口（覆盖 shared/ssh.nix 的默认值 22）
   my.ssh.port = 555;
+
+  # KDE 远程桌面（KRDP/RDP）：打开并改用高位端口（覆盖默认 3389）。
+  # 系统侧只负责放行这个端口；真正监听的配置在同名的用户级选项里
+  # （users/chen/home.nix，那边也要写同样的端口）。
+  my.remoteDesktop = {
+    enable = true;
+    port = 59599;
+  };
 
   system.stateVersion = "26.05";
 }

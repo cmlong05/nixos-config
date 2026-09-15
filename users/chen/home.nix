@@ -6,10 +6,20 @@
     ../modules/shell.nix
     ../modules/apps.nix
     ../modules/llm.nix
+    # KDE 远程桌面（KRDP/RDP）用户级服务（默认关，下面显式打开）
+    ../modules/remote-desktop.nix
     # 仅 chen 个人的应用
     ./apps.nix
     ./flatpak.nix
   ];
+
+  # KDE 远程桌面：登录后自动起 krdpserver，端口与系统侧
+  # （os-disk/portable-chen/default.nix 的 my.remoteDesktop.port，即防火墙放行）
+  # 必须一致 —— 两处都要改。
+  my.remoteDesktop = {
+    enable = true;
+    port = 59599;
+  };
 
   # 无需手写 home.username / home.homeDirectory：由 flake.nix 的 mkHome 注入
   # （standalone 模式下没有 NixOS 集成来推导它们）。
