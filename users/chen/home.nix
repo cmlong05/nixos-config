@@ -11,9 +11,11 @@
     ./flatpak.nix
   ];
 
-  # 无需手写 home.username / home.homeDirectory：本文件经 home-manager.users.chen
-  # 挂载时，home-manager 的 NixOS 集成会自动从 users.users.chen 注入用户名与家目录
-  # （见 home-manager 源码 nixos/common.nix），避免在两处重复维护用户名。
+  # 无需手写 home.username / home.homeDirectory：由 flake.nix 的 mkHome 注入
+  # （standalone 模式下没有 NixOS 集成来推导它们）。
+  #
+  # 激活方式：`nh home switch`（不需要 sudo；系统侧不再激活家目录，
+  # 所以本文件的改动只在这条命令跑完后生效）。
 
   # This value determines the Home Manager release that your
   # configuration is compatible with. This helps avoid breakage
@@ -26,5 +28,7 @@
   home.stateVersion = "26.05";
 
   # Let Home Manager install and manage itself.
+  # standalone 模式下这个开关会真的把 home-manager CLI 装进用户环境
+  # （作为 NixOS 子模块时它是空操作），用于 home-manager generations / --rollback。
   programs.home-manager.enable = true;
 }

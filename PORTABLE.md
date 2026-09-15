@@ -127,3 +127,6 @@ chen 的 3 台机器共用同一块移动硬盘（同一份 `/`、同一份 `/ho
   `scripts/detect-machine.sh [--probes]` 认机器 / 看本机指纹；
   `nh os switch .#portable-chen -s chen-laptop-intel` 指定机器变体，`-S` 回到基础系统（救援入口）；
   `sudo systemctl restart auto-machine-specialisation` 让运行中的系统立刻切回本机变体。
+- **用户级（家目录）是用户自己的事**（2026-09-15 起）：`nh os switch` **不再**动家目录，
+  dotfiles / 用户服务 / 用户应用由各人跑 `nh home switch`（不要 sudo）。改完用户级配置就跑一次；
+  不跑的话家目录保持上一次 `nh home switch` 的状态（不会被系统 switch 回退）。

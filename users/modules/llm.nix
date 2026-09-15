@@ -45,9 +45,10 @@ in {
       # 用包内绝对路径，避免依赖服务环境的 PATH
       ExecStart = "${llmPackages.dsh}/bin/dsh web";
       # 服务环境补上系统与用户 profile，供 dsh 内部调用的 git/pnpm 等命令使用。
-      # profileDirectory 由 home-manager 自动推导（useUserPackages 时为
-      # /etc/profiles/per-user/<用户名>），不写死具体用户名。
-      Environment = "PATH=/run/current-system/sw/bin:${config.home.profileDirectory}/bin";
+      # 用 home.path（本代包的合并目录）而不是 home.profileDirectory：
+      # standalone 模式下 profileDirectory 只是声明值（~/.nix-profile），
+      # home.path 才是这一代真实存在的包目录，两种激活方式下都成立。
+      Environment = "PATH=/run/current-system/sw/bin:${config.home.path}/bin";
       # 开机后网络可能尚未就绪/偶发失败，自动重试
       Restart = "on-failure";
       RestartSec = "10s";

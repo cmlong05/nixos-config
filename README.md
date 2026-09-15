@@ -1,10 +1,21 @@
 # NixOS 配置
 使用 flakes + home-manager 的 NixOS 配置仓库。
 
+**两层构建、两个入口**：
+
+| 层 | 入口 | 需要 sudo? | 管什么 |
+|---|---|---|---|
+| 系统级 | `nh os switch` | 是 | 机器 / 盘 / 服务 / 账户 / `shared/packages.nix` |
+| 用户级 | `nh home switch` | **否** | 家目录：dotfiles、用户服务、用户应用 |
+
+系统侧**不再激活任何家目录**（home-manager 不是 NixOS 模块，只以 `homeConfigurations`
+存在）。因此：用户级改动不会被系统 switch 覆盖，也不需要为了装一个包去重启或切回 specialisation；
+代价是**装机后每个用户要自己跑一次 `nh home switch`**（见"用户级构建"一节）。
+
 | os+disk | 用途 | 用户 | 说明 |
 |------|------|------|------|
 | `portable-chen` | **便携盘系统**（chen 的多台机器共用同一块移动硬盘） | chen | 全功能：蓝牙 / podman / dsh；**基础只带盘、不带硬件**，机器变体按硬件指纹**自动选**（菜单里也照旧可选） |
-| `msi-wd` | 员工机（同款硬件，内盘独立安装） | mubimuba（员工）+ bumooby（管理员） | 精简：无蓝牙 / podman / dsh；mubimuba 无 sudo |
+| `msi-wd` | 员工机（同款硬件，内盘独立安装） | mubimuba（员工）+ bumooby（管理员） | 精简：无蓝牙 / podman / dsh；mubimuba 无 sudo（但**能**自己 `nh home switch`，用户级构建不需要提权） |
 
 > chen 的硬件差异**不用多个 host**，而用 `specialisation`：基础系统只带盘挂载、不带硬件兜底，
 > 每台机器对应菜单里的一条 `chen-desktop` / `chen-laptop-amd` / `chen-laptop-intel`。
@@ -15,23 +26,25 @@
 
 ```
 nixos-config/
-├── flake.nix                    # 入口：inputs + 两主机 nixosConfigurations
-├── users/                       # 用户维度：账户 + home + 用户域共享模块
+├── flake.nix                    # 入口：inputs + 两主机 nixosConfigurations + 三份 homeConfigurations
+├── users/                       # 用户维度：账户（系统侧）+ home（用户侧）+ 用户域共享模块
 │   ├── chen/                    # 作者
-│   │   ├── default.nix          # 账户属性 + home-manager.users.chen
+│   │   ├── default.nix          # 账户属性（系统侧，无 home-manager 绑定）
 │   │   ├── home.nix             # home 入口（shell + apps + llm + 个人应用）
 │   │   ├── apps.nix             # 仅 chen 的 Nix 应用（li-ri）
 │   │   └── flatpak.nix          # 仅 chen 的 Flatpak（QQ / tuxmath，--user 安装）
 │   ├── mubimuba/                # 员工
-│   │   ├── default.nix          # 账户属性 + home-manager.users.mubimuba
+│   │   ├── default.nix          # 账户属性（系统侧）
 │   │   ├── home.nix             # home 入口（shell + apps，无 llm）
 │   │   └── apps.nix             # 仅 mubimuba 的 Nix 应用（gimp）
-│   ├── bumooby/                 # 管理员（仅账户，无 home）
-│   │   └── default.nix
-│   └── modules/                 # 用户域共享 home 模块
+│   ├── bumooby/                 # 管理员
+│   │   ├── default.nix          # 账户属性（系统侧）
+│   │   └── home.nix             # home 入口（shell + apps，与 mubimuba 同基线）
+│   └── modules/                 # 用户域共享 home 模块（每个用户的 home.nix 都 import）
 │       ├── shell.nix            # bash + direnv
-│       ├── apps.nix             # 用户级应用包
-│       └── llm.nix              # llm-agents 工具（dsh / reasonix，仅 chen）
+│       ├── apps.nix             # 用户级共享应用包 = "每个用户都要的基础软件"的统一位置
+│       ├── llm.nix              # llm-agents 工具（dsh / reasonix，仅 chen）
+│       └── standalone.nix       # standalone 模式适配（PATH：~/.nix-profile → 本代 home-path）
 ├── machines/                    # 机器维度：每台实体机器一个目录
 │   ├── machine-keys.txt         # 机器指纹表（DMI 型号/主板/CPU → 变体名；认机器只看它）
 │   ├── chen-desktop/            # AMD 3900XT + NVIDIA 3060
@@ -85,7 +98,7 @@ scripts/detect-machine.sh        # 认机器：读 DMI/CPU 指纹查 machines/ma
 ## 常用命令
 
 ```bash
-# 本机应用配置（系统 + home-manager 一起生效；按 hostname 自动取对应 host）
+# 系统级：机器 / 盘 / 服务 / 账户（按 hostname 自动取对应 host）
 nh os switch
 
 # 指定主机（员工机）
@@ -111,6 +124,52 @@ nix flake update
 nix flake check
 ```
 
+## 用户级构建（每个用户自己）
+
+家目录由**用户自己**负责，不需要 sudo，也不会被系统 switch 覆盖。
+
+```bash
+# 激活/更新自己的家目录（自动按 $USER@$(hostname) 找 homeConfigurations，
+# 找不到再退到 $USER；flake 取自 programs.nh.flake = /etc/nixos）
+nh home switch
+
+# 只构建不激活（想先看看会怎样）
+nh home build
+nh home switch --dry
+
+# 显式指定（在别的目录/别的 checkout 里跑）
+nh home switch --flake ~/nixos-config#mubimuba
+
+# 世代与回滚（home-manager CLI 由 programs.home-manager.enable 装进用户环境）
+home-manager generations
+home-manager --rollback
+```
+
+几个要知道的点：
+
+- **首次必须自己跑一次**：系统不再有 `home-manager-<user>.service`，装机后到跑
+  `nh home switch` 之前，家目录里没有这套 dotfiles/用户服务（系统级包仍然可用，
+  `nh` 本身在 `/run/current-system/sw/bin`，所以引导没问题）。
+  管理员可代跑：`sudo -u mubimuba -i nh home switch`。
+- **"每个用户都要的软件"放哪**：`users/modules/apps.nix`（+ `shell.nix`）—— 一份代码、
+  各自 import，改一处所有人下次 `nh home switch` 生效；要"保证所有用户都有、用户改不掉"
+  的放系统级 `shared/packages.nix`。
+- **一个家目录只能有一个激活者**：不要为了"双保险"同时再挂 `home-manager.users.<user>`
+  （NixOS 模块）—— 那会变成两个激活者抢同一批文件，用户 switch 的结果会被系统 switch
+  或开机服务悄悄盖回去。要回到系统托管，就把 `homeConfigurations.<user>` 和
+  `users/<user>/home.nix` 一起挪回 NixOS 模块。
+- **PATH**：standalone 的世代落在 `~/.local/state/nix/profiles/home-manager`，不在 NixOS
+  的 PATH 里，所以 `users/modules/standalone.nix` 会把 `~/.nix-profile` 指到本代
+  `home-path`，借此复用 NixOS 已有的 `$HOME/.nix-profile/bin`（登录 shell、图形会话、
+  systemd 用户服务全覆盖）。
+  ⚠️ 副作用：`~/.nix-profile` 从此归 home-manager，**不再是 Nix 的命令式 profile**，
+  所以 `nix profile install` 装的包不会进 PATH —— 临时用 `nix shell nixpkgs#foo`，
+  要长期留着就写进 `users/<user>/apps.nix`（或共享基线 `users/modules/apps.nix`）再
+  `nh home switch`。
+- **配置的写权限**：员工机上仓库在 `/etc/nixos`（root 所有）→ 普通用户能 `nh home switch`
+  激活，但改不了配置；要自助声明新包就在自己家目录 clone 一份仓库
+  （`nh home switch --flake ~/nixos-config#<user>`），或请管理员改 `users/<user>/apps.nix`。
+
 ## 注意事项 / 踩坑记录
 
 - **维度判据**：机器硬件 → `machines/<机器>/`（`hardware-configuration.nix` 生成 + `default.nix` 手写尾巴）；
@@ -118,10 +177,19 @@ nix flake check
   `os-disk/<name>/default.nix` 只做接线：把 machines / disk / shared / users 拼起来。
   跨机器**可变**的硬件差异（GPU/CPU）走 `specialisation`，不新增目录。
 - **应用放哪，判据是"机器要"还是"人要"**：
-  - 机器要（root/sudo、救援 TTY 也要能用的，如 `vim`）→ `shared/packages.nix`；
+  - 机器要（root/sudo、救援 TTY 也要能用的，如 `vim`）→ `shared/packages.nix`（系统级，
+    `nh os switch` 生效，对所有用户可用、用户改不掉）；
+  - **每个用户都要的桌面/终端应用** → `users/modules/apps.nix`（+ `shell.nix`）：
+    一份代码，各人 `home.nix` import，改一处、各人 `nh home switch` 后生效；
   - 某个人自己的 → `users/<name>/`：Nix 包放 `apps.nix`，Flatpak 放 `flatpak.nix`
     （经 nix-flatpak 的 home-manager 模块以 `--user` 安装，跟人走，别的机器拿不到）；
   - `os-disk/<name>/default.nix` **只做接线，不放任何应用**。
+- **用户级构建（2026-09-15）**：home-manager 从 "NixOS 模块" 改为 **standalone
+  `homeConfigurations`**（`flake.nix` 的 `mkHome`，每人 `"<user>@<host>"` 与 `"<user>"` 两个名字），
+  系统侧删掉全部 `home-manager.users.*` 与 `useGlobalPkgs/useUserPackages`。动机：用户级改动
+  不必 sudo、不触发系统 switch（也就不会把运行中的系统打回 specialisation 基础系统），
+  且用户自己掌握家目录世代与回滚。代价：装机后各人自跑一次 `nh home switch`；
+  PATH 由 `users/modules/standalone.nix` 兜（详见"用户级构建"一节）。
 - **生成与手写分离**：`nixos-generate-config --no-filesystems` 的产物**原样**放
   `machines/<机器>/hardware-configuration.nix`（勿手改，重生成即覆盖）；生成器不产出的
   NVIDIA 驱动 / 固件 / 图形 / 蓝牙，写进 `machines/<机器>/default.nix`（imports 上面）。
@@ -171,7 +239,9 @@ nix flake check
   并同时把 GOPROXY 从 `impureEnvVars` 移除——否则固定输出推导会以 nix-daemon
   环境（未设置 GOPROXY）的空串覆盖它，又退回默认代理。
 - 仓库锁定的 nixpkgs 分支为 `nixos-26.05`，home-manager 为 `release-26.05`，
-  两者需保持大版本一致。
+  两者需保持大版本一致。standalone 的 `mkHome` 用 `import nixpkgs { config.allowUnfree = true; }`
+  构造 pkgs —— **`shared/nix.nix` 里的 nixpkgs 配置若有变动（overlay / config），
+  这里要同步改**，否则系统侧与用户侧会漂移成两份不同的包。
 
 ## 依赖输入
 
@@ -179,5 +249,5 @@ nix flake check
 |------|------|
 | nixpkgs | 主包源（NJU 镜像，26.05） |
 | nix-flatpak | flatpak 声明式安装模块（系统级 + home-manager 用户级） |
-| home-manager | 用户环境管理 |
+| home-manager | 用户环境管理（standalone `homeConfigurations`，由各用户自己 `nh home switch` 激活） |
 | llm-agents | dsh / reasonix 等 LLM 工具包（仅作者机 chen 使用） |

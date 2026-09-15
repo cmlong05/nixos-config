@@ -76,4 +76,13 @@ ls /mnt/etc/nixos/flake.nix /mnt/etc/nixos/os-disk/msi-wd/default.nix /mnt/etc/n
 
 5. 员工机上 mubimuba **没有 wheel（无 sudo）**；如需提权，把 `wheel`
    加回 `users/mubimuba/default.nix` 的 mubimuba extraGroups。
-6. 员工机上需要哪些用户级应用，改 `users/mubimuba/home.nix`。
+6. 员工机上需要哪些用户级应用，改 `users/mubimuba/home.nix`（所有用户都要的改共享基线
+   `users/modules/apps.nix`）。
+7. **每个用户在自己的账号下跑一次家目录激活**（系统不再代劳，见 README「用户级构建」）：
+   ```
+   nh home switch          # 不要 sudo
+   ```
+   管理员可代跑：`sudo -u bumooby -i nh home switch`、`sudo -u mubimuba -i nh home switch`。
+   在跑之前，该用户的家目录里还没有这套 dotfiles 与用户级应用（系统级包不受影响，
+   `nh` 本身在 `/usr/...`/`/run/current-system/sw/bin`，所以引导没问题）。
+   以后每次改完用户级配置，各自重跑一次即可；系统 switch 不会再动家目录。

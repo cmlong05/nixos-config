@@ -12,10 +12,14 @@
     # 不引入 llm.nix：员工机不装 dsh / reasonix（也就不用拉取 llm-agents 输入）
   ];
 
-  # 无需手写 home.username / home.homeDirectory：本文件经 home-manager.users.mubimuba
-  # 挂载时自动从 users.users.mubimuba 注入（单一事实来源在 users/mubimuba/default.nix）。
+  # 无需手写 home.username / home.homeDirectory：由 flake.nix 的 mkHome 注入
+  # （standalone 模式下没有 NixOS 集成来推导它们）。
+  #
+  # 激活方式：`nh home switch`。mubimuba 没有 wheel 也不需要提权 ——
+  # 用户级构建只写自己的家目录和用户 profile。
 
   home.stateVersion = "26.05";
 
+  # standalone 模式下会真的把 home-manager CLI 装进用户环境
   programs.home-manager.enable = true;
 }
