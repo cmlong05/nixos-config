@@ -201,6 +201,10 @@ home-manager --rollback
   （没有显卡驱动），所以它是**救援入口**（`nh os switch -S` 后重启，或菜单里手选基础条目）；
   `chen-desktop` / `chen-laptop-amd` / `chen-laptop-intel` 是**开机菜单里的机器变体**，换机器零命令。
   ⚠️ 代价：每个变体多出一份系统闭包（共享的包不重复，额外≈差异部分）。
+  曾试过"多 host 共享一块盘"（两个 host 目录各导入同一份盘挂载），**已放弃**：换机器必须在
+  **目标机上**跑 `nh os switch --flake .#<host>`，而且菜单里"另一台"的条目只是**最后一次激活时的
+  过期快照** —— 菜单能让你回到过去，却切不到另一台的当前配置。若将来某台机器的差异超出
+  "显卡变体"范围（例如要不同的用户/服务），那才该另开独立 host。
 - **机器变体自动选（2026-09-14，2026-09-15 补运行期也改菜单）**：菜单"选哪条"是 bootloader
   的事，系统里改不了 → 两段式，都靠 `machines/machine-keys.txt`（指纹表）+
   `scripts/detect-machine.sh` 认机器，找条目/改 `loader.conf` 的活儿在
@@ -243,10 +247,26 @@ home-manager --rollback
   `users/modules/llm.nix` 用 `overrideModAttrs` 把 `GOPROXY` 换成 `goproxy.cn`，
   并同时把 GOPROXY 从 `impureEnvVars` 移除——否则固定输出推导会以 nix-daemon
   环境（未设置 GOPROXY）的空串覆盖它，又退回默认代理。
+- **选错变体不会变砖**：Intel 机带着整套 nvidia 驱动也能正常进桌面，最坏是驱动加载失败
+  + 日志噪音 + 性能退化；不要为了"怕选错"而给便携盘另开 host 或拆分目录。
+- **不要给不同变体配不同内核**：变体共用同一份内核闭包，各自钉不同版本就得编译两份内核。
+- **BitLocker**：内盘 Windows 已加密，不要为了双系统去改 BIOS 的 Secure Boot / TPM / 启动顺序，
+  否则会索要恢复密钥。
 - 仓库锁定的 nixpkgs 分支为 `nixos-26.05`，home-manager 为 `release-26.05`，
   两者需保持大版本一致。standalone 的 `mkHome` 用 `import nixpkgs { config.allowUnfree = true; }`
   构造 pkgs —— **`shared/nix.nix` 里的 nixpkgs 配置若有变动（overlay / config），
   这里要同步改**，否则系统侧与用户侧会漂移成两份不同的包。
+
+## 待办（未决 / 未验证）
+
+- **时间策略未定**：用 `time.hardwareClockInLocalTime`，还是 Windows 侧改（双系统 RTC 差 8 小时）。
+  仓库目前**两处都没设** —— 定下来之前别只改一半。
+- **Intel 内显无 VA-API 硬解**：`/run/opengl-driver/lib` 里没有 `iHD` / `vpl`，视频解码全走 CPU。
+  修法（取消一行注释即可）写在 `machines/chen-laptop-intel/default.nix`。
+- **两处只做了构建/脚本验证，没做真机重启验证**：
+  1. 基础系统当救援入口（`nh os switch -S` 后重启，或在菜单里手选基础条目，确认能挂盘、能重建）；
+  2. 运行期补写菜单默认条目（先把 `/boot/loader/loader.conf` 的 `default` 故意改回别的机器，
+     重启且**不碰菜单**，看是否自动落到本机变体 + 默认条目被改写）。
 
 ## 依赖输入
 
