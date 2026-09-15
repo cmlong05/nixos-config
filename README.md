@@ -46,8 +46,7 @@ nixos-config/
 │       ├── shell.nix            # bash + direnv
 │       ├── apps.nix             # 用户级共享应用包 = "每个用户都要的基础软件"的统一位置
 │       ├── llm.nix              # llm-agents 工具（dsh / reasonix，仅 chen）
-│       ├── remote-desktop.nix   # KDE 远程桌面（KRDP/RDP）用户级：krdpserverrc + 用户服务
-│       └── standalone.nix       # standalone 模式适配（PATH：~/.nix-profile → 本代 home-path）
+│       └── remote-desktop.nix   # KDE 远程桌面（KRDP/RDP）用户级：krdpserverrc + 用户服务
 ├── machines/                    # 机器维度：每台实体机器一个目录
 │   ├── machine-keys.txt         # 机器指纹表（DMI 型号/主板/CPU → 变体名；认机器只看它）
 │   ├── chen-desktop/            # AMD 3900XT + NVIDIA 3060
@@ -166,14 +165,18 @@ home-manager --rollback
   （NixOS 模块）—— 那会变成两个激活者抢同一批文件，用户 switch 的结果会被系统 switch
   或开机服务悄悄盖回去。要回到系统托管，就把 `homeConfigurations.<user>` 和
   `users/<user>/home.nix` 一起挪回 NixOS 模块。
-- **PATH**：standalone 的世代落在 `~/.local/state/nix/profiles/home-manager`，不在 NixOS
-  的 PATH 里，所以 `users/modules/standalone.nix` 会把 `~/.nix-profile` 指到本代
-  `home-path`，借此复用 NixOS 已有的 `$HOME/.nix-profile/bin`（登录 shell、图形会话、
-  systemd 用户服务全覆盖）。
-  ⚠️ 副作用：`~/.nix-profile` 从此归 home-manager，**不再是 Nix 的命令式 profile**，
-  所以 `nix profile install` 装的包不会进 PATH —— 临时用 `nix shell nixpkgs#foo`，
-  要长期留着就写进 `users/<user>/apps.nix`（或共享基线 `users/modules/apps.nix`）再
-  `nh home switch`。
+- **PATH**：standalone 的世代落在 `~/.local/state/nix/profiles/home-manager`（`nh` 的约定），
+  那个目录不在 NixOS 的 PATH 里；真正把包送进 PATH 的是 home-manager 自己的激活步骤
+  `installPackages` —— 它把本代 `home.path`（`home.packages` 合并出来的 `home-manager-path`）
+  用 `nix-env -i` 装进 **Nix 的命令式 profile** `~/.nix-profile`
+  （`~/.nix-profile` → `~/.local/state/nix/profiles/profile` → `profile-N-link`）。
+  于是 NixOS 已有的 `$HOME/.nix-profile/bin`（登录 shell、图形会话、systemd 用户服务全覆盖）
+  自然就有这批包，而且每次 `nh home switch` 自动更新，`nix-env` 自己装的包也并存。
+  ⚠️ **不要**为了"更快见效"手动把 `~/.nix-profile` 指到本代 `home-path`（含 `bin/` 的那份）：
+  那是 `/nix/store` 里的只读目录，链接一旦指过去，**下一次**激活就会死在 `nix-env` 开锁文件上
+  （`error: opening lock file ".../profiles/home-manager/home-path.lock": Read-only file system`，
+  `nh home switch` 报 "Activation failed"），而且 `nix-env` / `nix profile install` 也一起失效。
+  中招的判据与修法见下面「踩坑记录」。
 - **配置的写权限**：员工机上仓库在 `/etc/nixos`（root 所有）→ 普通用户能 `nh home switch`
   激活，但改不了配置；要自助声明新包就在自己家目录 clone 一份仓库
   （`nh home switch --flake ~/nixos-config#<user>`），或请管理员改 `users/<user>/apps.nix`。
@@ -197,7 +200,27 @@ home-manager --rollback
   系统侧删掉全部 `home-manager.users.*` 与 `useGlobalPkgs/useUserPackages`。动机：用户级改动
   不必 sudo、不触发系统 switch（也就不会把运行中的系统打回 specialisation 基础系统），
   且用户自己掌握家目录世代与回滚。代价：装机后各人自跑一次 `nh home switch`；
-  PATH 由 `users/modules/standalone.nix` 兜（详见"用户级构建"一节）。
+  PATH 由 home-manager 激活步骤把本代 `home-path` 装进 `~/.nix-profile` 兜（详见"用户级构建"一节）。
+- **standalone 下 `~/.nix-profile` 指到本代 home-path 会让激活永久失败（2026-09-15 修）**：
+  早期 `users/modules/standalone.nix` 为了复用 NixOS 的 `$HOME/.nix-profile/bin`，在激活末尾
+  执行 `ln -sfn <本代>/home-path ~/.nix-profile`。第一次 `nh home switch` 会成功（那时
+  `~/.nix-profile` 还不存在，Nix 用它自己的默认 profile 装完包之后才被这行覆盖），但从
+  **第二次**起必然失败：
+  ```
+  installing 'home-manager-path'
+  error: opening lock file "/home/chen/.local/state/nix/profiles/home-manager/home-path.lock": Read-only file system
+  ```
+  原因：`~/.nix-profile` → `.../profiles/home-manager/home-path`，而 `home-manager` 是指向
+  `/nix/store/*-home-manager-generation` 的符号链接 —— 链接穿过它落进**只读**的 `/nix/store`；
+  激活的 `installPackages` 步骤跑 `nix-env -i`，它会按当前 profile 路径开 `<profile>.lock`
+  并创建 `<profile>-N-link`，于是 EROFS。
+  该模块已删除（PATH 由 home-manager 自己装进命令式 profile，见「用户级构建 → PATH」）。
+  已中招的机器修一次即可（别的用户只要 `readlink ~/.nix-profile` 不含 `home-path` 就不用管）：
+  ```
+  readlink ~/.nix-profile        # 含 home-path 才是中招
+  ln -sfn ~/.local/state/nix/profiles/profile ~/.nix-profile
+  nh home switch
+  ```
 - **KDE 远程桌面（KRDP/RDP，2026-09-15）**：服务本体是**用户级**的 `krdpserver`（Plasma 6 自带，
   图形入口「系统设置 → 远程桌面」），所以整套在 `users/modules/remote-desktop.nix`：写
   `~/.config/krdpserverrc` + 在 `~/.config/systemd/user` 放同名单元

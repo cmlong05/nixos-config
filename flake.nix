@@ -60,8 +60,16 @@
         };
         extraSpecialArgs = { inherit inputs pkgs-unstable; };
         modules = modules ++ [
-          # standalone 模式适配（PATH 等），详见该文件注释
-          ./users/modules/standalone.nix
+          # PATH 不需要在这里兜底：home-manager 自己的激活步骤 installPackages 会把本代
+          # home.path（home.packages 合并目录）用 `nix-env -i` 装进 Nix 的命令式 profile
+          # ~/.nix-profile（→ ~/.local/state/nix/profiles/profile-N-link），而 NixOS 的
+          # PATH 里本来就有 $HOME/.nix-profile/bin。详见 README「用户级构建 → PATH」。
+          #
+          # ⚠️ 不要手动把 ~/.nix-profile 指到本代 home-path（曾经的
+          # users/modules/standalone.nix 正是这么做的）：那是一条通向只读 /nix/store 的
+          # 链接，下一次激活的 nix-env 会在开锁文件时直接失败，报
+          #   error: opening lock file ".../home-manager/home-path.lock": Read-only file system
+          # 并且 nix-env / nix profile install 也一并失效。
           {
             home.username = user;
             home.homeDirectory = "/home/${user}";
