@@ -7,7 +7,7 @@
 {
   users.users.bumooby = {
     isNormalUser = true;
-    description = "bumooby (admin)";
+    description = "";
     extraGroups = [ "networkmanager" "wheel" ];
   };
 }

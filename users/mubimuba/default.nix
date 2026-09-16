@@ -9,7 +9,8 @@
 {
   users.users.mubimuba = {
     isNormalUser = true;
-    description = "mubimuba - employee";
+    # 空全名：SDDM/KDE 登录界面只显示用户名，不再多出一行 real name
+    description = "";
     extraGroups = [ "networkmanager" ];
   };
 }
