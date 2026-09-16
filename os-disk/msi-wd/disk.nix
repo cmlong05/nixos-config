@@ -4,7 +4,7 @@
 #   nixos-generate-config --root /mnt
 # 挂载行（fileSystems + swapDevices）跟盘走，放本文件；
 # 硬件探测部分用 --no-filesystems 直接生成，放 machines/employee-3600/hardware-configuration.nix。
-# 再 nixos-install --flake .#msi-wd（详见 DEPLOY.md）
+# 再 nixos-install --flake .#msi-wd（详见 DEPLOY-INSTALL.md；日常维护见 DEPLOY-MAINT.md）
 { ... }:
 
 {

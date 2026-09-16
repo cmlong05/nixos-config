@@ -5,12 +5,15 @@
 
 | 层 | 入口 | 需要 sudo? | 管什么 |
 |---|---|---|---|
-| 系统级 | `nh os switch` | 是 | 机器 / 盘 / 服务 / 账户 / `shared/packages.nix` |
+| 系统级 | `nh os switch` | **否**（`nh` 自己 sudo 提权；加了 sudo 反而会被 nh 拒绝） | 机器 / 盘 / 服务 / 账户 / `shared/packages.nix` |
 | 用户级 | `nh home switch` | **否** | 家目录：dotfiles、用户服务、用户应用 |
 
 系统侧**不再激活任何家目录**（home-manager 不是 NixOS 模块，只以 `homeConfigurations`
 存在）。因此：用户级改动不会被系统 switch 覆盖，也不需要为了装一个包去重启或切回 specialisation；
 代价是**装机后每个用户要自己跑一次 `nh home switch`**（见"用户级构建"一节）。
+
+逐步操作文档分成两份：**全新安装** [`DEPLOY-INSTALL.md`](./DEPLOY-INSTALL.md)（一次性、会抹盘）
+｜ **日常维护/更新** [`DEPLOY-MAINT.md`](./DEPLOY-MAINT.md)（改配置、更新、回滚、排障）。
 
 | os+disk | 用途 | 用户 | 说明 |
 |------|------|------|------|
@@ -103,11 +106,12 @@ scripts/set-default-entry.sh     # 把本机变体写成开机默认条目：本
 ## 常用命令
 
 ```bash
-# 系统级：机器 / 盘 / 服务 / 账户（按 hostname 自动取对应 host）
+# 系统级：机器 / 盘 / 服务 / 账户（按本机运行中的 hostname 自动取对应 host）
+# 不要加 sudo：nh 自己会 sudo 提权，以 root 直接跑会被 nh 拒绝
 nh os switch
 
-# 指定主机（员工机）
-nh os switch --flake .#msi-wd
+# 指定主机（员工机；本机 hostname 与 flake 里的配置名不一致时也必须这么写）
+nh os switch -H msi-wd
 
 # 便携盘：机器变体自动选 —— 部署期认本机指纹，把默认启动条目写成「本机变体」：
 # 一份进本机 NVRAM 的 EFI 变量 LoaderEntryDefault（跟机器走 → 每台机器各自记住自己，
@@ -145,7 +149,7 @@ nh home build
 nh home switch --dry
 
 # 显式指定（在别的目录/别的 checkout 里跑）
-nh home switch --flake ~/nixos-config#mubimuba
+nh home switch ~/nixos-config#mubimuba
 
 # 世代与回滚（home-manager CLI 由 programs.home-manager.enable 装进用户环境）
 home-manager generations
@@ -179,7 +183,7 @@ home-manager --rollback
   中招的判据与修法见下面「踩坑记录」。
 - **配置的写权限**：员工机上仓库在 `/etc/nixos`（root 所有）→ 普通用户能 `nh home switch`
   激活，但改不了配置；要自助声明新包就在自己家目录 clone 一份仓库
-  （`nh home switch --flake ~/nixos-config#<user>`），或请管理员改 `users/<user>/apps.nix`。
+  （`nh home switch ~/nixos-config#<user>`），或请管理员改 `users/<user>/apps.nix`。
 
 ## 注意事项 / 踩坑记录
 
@@ -262,7 +266,7 @@ home-manager --rollback
   `chen-desktop` / `chen-laptop-amd` / `chen-laptop-intel` 是**开机菜单里的机器变体**，换机器零命令。
   ⚠️ 代价：每个变体多出一份系统闭包（共享的包不重复，额外≈差异部分）。
   曾试过"多 host 共享一块盘"（两个 host 目录各导入同一份盘挂载），**已放弃**：换机器必须在
-  **目标机上**跑 `nh os switch --flake .#<host>`，而且菜单里"另一台"的条目只是**最后一次激活时的
+  **目标机上**跑 `nh os switch -H <host>`，而且菜单里"另一台"的条目只是**最后一次激活时的
   过期快照** —— 菜单能让你回到过去，却切不到另一台的当前配置。若将来某台机器的差异超出
   "显卡变体"范围（例如要不同的用户/服务），那才该另开独立 host。
 - **机器变体自动选（2026-09-14 两段式；2026-09-15 补运行期也改；2026-09-15 改存本机 NVRAM）**：
