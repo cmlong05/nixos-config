@@ -9,29 +9,30 @@
 
 {
   fileSystems."/" =
-    { device = "/dev/disk/by-uuid/086bf1f6-bdb7-4f9f-b967-bd25fbf82295";
+    { device = "/dev/disk/by-uuid/0d1ddff2-e476-49c6-855a-c159a75e4099";
       fsType = "btrfs";
-    };
-
-  fileSystems."/home" =
-    { device = "/dev/disk/by-uuid/086bf1f6-bdb7-4f9f-b967-bd25fbf82295";
-      fsType = "btrfs";
-      options = [ "subvol=home" ];
     };
 
   fileSystems."/nix" =
-    { device = "/dev/disk/by-uuid/086bf1f6-bdb7-4f9f-b967-bd25fbf82295";
+    { device = "/dev/disk/by-uuid/0d1ddff2-e476-49c6-855a-c159a75e4099";
       fsType = "btrfs";
       options = [ "subvol=nix" ];
     };
 
+  fileSystems."/home" =
+    { device = "/dev/disk/by-uuid/0d1ddff2-e476-49c6-855a-c159a75e4099";
+      fsType = "btrfs";
+      options = [ "subvol=home" ];
+    };
+
   fileSystems."/boot" =
-    { device = "/dev/disk/by-uuid/534A-47F7";
+    { device = "/dev/disk/by-uuid/AAD9-8D8F";
       fsType = "vfat";
-      options = [ "fmask=0077" "dmask=0077" ];
+      options = [ "fmask=0022" "dmask=0022" ];
     };
 
   swapDevices =
-    [ { device = "/dev/disk/by-uuid/30cce407-1bd3-41c3-9c69-f02fa8bf9bb9"; }
+    [ { device = "/dev/disk/by-uuid/b950506c-66c5-4f9b-a853-1afb81cc6966"; }
     ];
+
 }
