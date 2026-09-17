@@ -209,6 +209,7 @@ nix-flatpak、llm-agents），也就是"整个系统的软件版本"。**别在�
 | 所有用户都要的桌面/终端应用 | `users/modules/apps.nix` | 各人 `nh home switch` |
 | 某个人自己的 Nix 应用 | `users/<name>/apps.nix` | 该用户 `nh home switch` |
 | 员工机装哪些用户 | `os-disk/msi-wd/users.nix` | `nh os switch -H msi-wd` |
+| 登录界面列哪些用户（msi-wd 只列 mubimuba） | `os-disk/msi-wd/default.nix`（`services.displayManager.hiddenUsers`） | `nh os switch -H msi-wd` |
 | 时区 / locale / 字体 / 输入法 | `shared/locale.nix` | `nh os switch -H msi-wd` |
 
 ⚠️ 别把硬件探测写进 `machines/<机器>/hardware-configuration.nix` 手改 ——
@@ -285,6 +286,7 @@ home-manager --rollback
 | `error: ... does not provide attribute 'nixosConfigurations.<名字>'`（名字不是 `msi-wd`） | plain `nh os switch` 是按**本机运行中的 hostname** 补属性名的，而本机 hostname 还不是 `msi-wd`（刚装好/改过名） | 用 `nh os switch -H msi-wd` 显式指定；顺便 `hostname` 确认一下 |
 | `Don't run nh os as root` | `nh` 命令前加了 `sudo` | 去掉 sudo：`nh os switch -H msi-wd`（`nh` 自己会提权） |
 | 远程桌面连不上 | 员工机**默认不开** KDE 远程桌面 | 要开就在 `os-disk/msi-wd/default.nix` 设 `my.remoteDesktop.enable = true;`（+ 用户级配置），再 switch |
+| 员工机登录界面里看不到 bumooby | 设计如此：`hiddenUsers` 只把他从**用户列表**里滤掉，账户没被禁用 | 管理员照旧 `ssh bumooby@<msi-wd-ip>` 或 Ctrl+Alt+F2 文本控制台登录；非要在图形界面登，临时注释掉 `os-disk/msi-wd/default.nix` 里那行再 switch |
 
 ---
 

@@ -18,7 +18,7 @@
 | os+disk | 用途 | 用户 | 说明 |
 |------|------|------|------|
 | `portable-chen` | **便携盘系统**（chen 的多台机器共用同一块移动硬盘） | chen | 全功能：蓝牙 / podman / dsh；**基础只带盘、不带硬件**，机器变体按硬件指纹**自动选**（菜单里也照旧可选） |
-| `msi-wd` | 员工机（同款硬件，内盘独立安装） | mubimuba（员工）+ bumooby（管理员） | 精简：无蓝牙 / podman / dsh；mubimuba 无 sudo（但**能**自己 `nh home switch`，用户级构建不需要提权） |
+| `msi-wd` | 员工机（同款硬件，内盘独立安装） | mubimuba（员工）+ bumooby（管理员） | 精简：无蓝牙 / podman / dsh；mubimuba 无 sudo（但**能**自己 `nh home switch`，用户级构建不需要提权）；**登录界面只列 mubimuba**，管理员走 ssh / 文本控制台（见「注意事项」） |
 
 > chen 的硬件差异**不用多个 host**，而用 `specialisation`：基础系统只带盘挂载、不带硬件兜底，
 > 每台机器对应菜单里的一条 `chen-desktop` / `chen-laptop-amd` / `chen-laptop-intel`。
@@ -255,6 +255,16 @@ home-manager --rollback
   同时监听 555 **和** 22、防火墙只放 22，`ssh -p 555` 从别的机器连不上（`-p 22` 反而能连）。
   现在改成 `ports = [ cfg.port ]`（openFirewall 默认 true，自动带上放行）：**sshd 只监听 555、
   防火墙也只放 555**。⚠️ 22 从此不再监听也不再放行 —— 要回到标准端口就 `my.ssh.port = 22;`。
+- **msi-wd 登录界面只列 mubimuba（2026-09-17）**：`os-disk/msi-wd/default.nix` 设
+  `services.displayManager.hiddenUsers = [ "nobody" "bumooby" ]` —— 这个选项就是 SDDM 的
+  `[Users] HideUsers=`（nix-daemon 模块另外还会往里塞 `nixbld1..32`，所以最终那行更长），
+  只过滤**用户列表**，不动账户：bumooby 照旧能 `ssh`（默认 22，见上一条）、能在文本控制台
+  （Ctrl+Alt+F2…）登录。代价要记住：Breeze 主题的判据是"有用户可选就显示用户列表，
+  否则才显示用户名输入框"（`Login.qml` 的 `showUsernamePrompt: !showUserList`），而
+  `showUserList` 在只剩 1 个用户时恒为真 —— SDDM 的 `UserModel` 只在用户数**超过**
+  `DisableAvatarsThreshold`（默认 7）时才置 `containsAllUsers=false`，**被 HideUsers 滤掉的不算**。
+  所以图形界面里**选不到** bumooby；哪天要在图形界面登管理员，临时注释掉那行再
+  `nh os switch -H msi-wd`。
 - **生成与手写分离**：`nixos-generate-config --no-filesystems` 的产物**原样**放
   `machines/<机器>/hardware-configuration.nix`（勿手改，重生成即覆盖）；生成器不产出的
   NVIDIA 驱动 / 固件 / 图形 / 蓝牙，写进 `machines/<机器>/default.nix`（imports 上面）。
