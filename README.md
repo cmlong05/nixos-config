@@ -40,8 +40,9 @@ nixos-config/
 │   │   └── flatpak.nix          # 仅 chen 的 Flatpak（QQ / tuxmath，--user 安装）
 │   ├── mubimuba/                # 员工
 │   │   ├── default.nix          # 账户属性（系统侧）
-│   │   ├── home.nix             # home 入口（shell + apps，无 llm）
-│   │   └── apps.nix             # 仅 mubimuba 的 Nix 应用（gimp）
+│   │   ├── home.nix             # home 入口（shell + apps + 桌面链接，无 llm）
+│   │   ├── apps.nix             # 仅 mubimuba 的 Nix 应用（gimp）
+│   │   └── desktop.nix          # 桌面上的 office 网络链接（smb://10.10.10.9/Operation/Product/，密码存 KWallet）
 │   ├── bumooby/                 # 管理员
 │   │   ├── default.nix          # 账户属性（系统侧）
 │   │   └── home.nix             # home 入口（shell + apps，与 mubimuba 同基线）

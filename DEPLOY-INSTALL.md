@@ -203,6 +203,9 @@ sudo reboot
    管理员可代跑：`sudo -u bumooby -i nh home switch`、`sudo -u mubimuba -i nh home switch`。
    跑之前家目录里还没有这套 dotfiles 与用户级应用（系统级包不受影响，
    `nh` 本身在 `/run/current-system/sw/bin`，所以引导没问题）。
+   桌面上 office 链接指向 SMB 共享 `\\10.10.10.9\Operation\Product`，
+   第一次双击时输一次并勾「记住密码」（存进该用户自己的 KWallet，
+   之后不再弹框）——见 `users/mubimuba/desktop.nix` 的说明。
 3. `mubimuba` **没有 wheel（无 sudo）**；真要给他提权，把 `wheel`
    加回 `users/mubimuba/default.nix` 的 `extraGroups`（然后系统级 switch 一次）。
 4. 员工机上需要哪些用户级应用：改 `users/mubimuba/home.nix`（人人都要的改

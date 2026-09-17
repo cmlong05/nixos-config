@@ -9,6 +9,8 @@
     ../modules/apps.nix
     # 仅 mubimuba 个人的应用（员工机 msi-wd）
     ./apps.nix
+    # 桌面上的 office 网络文件夹链接（smb://10.10.10.9/Operation/Product/）
+    ./desktop.nix
     # 不引入 llm.nix：员工机不装 dsh / reasonix（也就不用拉取 llm-agents 输入）
   ];
 

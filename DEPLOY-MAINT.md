@@ -208,6 +208,7 @@ nix-flatpak、llm-agents），也就是"整个系统的软件版本"。**别在�
 | 挂载 / swap（跟盘走） | `os-disk/msi-wd/disk.nix` | `nh os switch -H msi-wd`（`/boot` 之类改动要重启） |
 | 所有用户都要的桌面/终端应用 | `users/modules/apps.nix` | 各人 `nh home switch` |
 | 某个人自己的 Nix 应用 | `users/<name>/apps.nix` | 该用户 `nh home switch` |
+| 员工桌面上的 office 网络文件夹链接（smb://10.10.10.9/Operation/Product/） | `users/mubimuba/desktop.nix` | mubimuba 跑 `nh home switch`；**首次双击输一次密码并勾「记住密码」**（存 KWallet，之后不再弹框） |
 | 员工机装哪些用户 | `os-disk/msi-wd/users.nix` | `nh os switch -H msi-wd` |
 | 登录界面列哪些用户（msi-wd 只列 mubimuba） | `os-disk/msi-wd/default.nix`（`services.displayManager.hiddenUsers`） | `nh os switch -H msi-wd` |
 | 时区 / locale / 字体 / 输入法 | `shared/locale.nix` | `nh os switch -H msi-wd` |
