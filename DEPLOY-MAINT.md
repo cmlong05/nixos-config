@@ -4,7 +4,8 @@
 **全新安装**（会抹盘的一次性流程）看 [`DEPLOY-INSTALL.md`](./DEPLOY-INSTALL.md)。
 
 适用机器：`msi-wd`（员工机，内盘独立安装）。作者机的规则基本一致，
-差别只在于仓库路径（作者机 `/etc/nixos` 是指向 `~/nixos-config` 的软链）与 ssh 端口（作者机 555）。
+差别只在于仓库路径（作者机 `/etc/nixos` 是指向 `~/nixos-config` 的软链）与 ssh 端口（作者机 555），
+外加一处**必须**知道的差别：机器变体（`specialisation`）与 `-s` / `-S` —— 见第 5 节。
 
 ---
 
@@ -47,6 +48,8 @@
 - **不要**在 `nh` 前面加 `sudo`：`nh os switch` / `nh os rollback` 自己会 sudo 提权，
   以 root 直接跑会被拒绝（`Don't run nh os as root`）。带 sudo 的只有 `git`、`systemctl`
   这类命令。
+- `-H` / `-s` / `-S` 都是「**选哪份配置**」的选项，不是"更彻底的 switch"：
+  员工机没有变体，`-s` / `-S` 用不到；便携盘的三种写法见第 5 节。
 
 ---
 
@@ -121,7 +124,7 @@ nh os switch -H msi-wd        # 不要 sudo：nh 自己会提权
 ### 4.3 什么时候要重启
 
 - **改了内核 / NVIDIA 驱动 / initrd** → 必须重启：`sudo reboot`。
-  （内核来自 nixpkgs，只有 `nix flake update` 之后才会变，见第 5 节。）
+  （内核来自 nixpkgs，只有 `nix flake update` 之后才会变，见第 6 节。）
 - 只改了服务、包、用户 → 一般不用重启；`nh os switch` 已经激活。
 - 想让新系统成为**开机默认**：`nh os switch` 本来就会写入 boot 默认条目。
 
@@ -141,7 +144,47 @@ nh home switch            # 每个用户在自己的账号下跑一次
 
 ---
 
-## 5. 什么时候该 `nix flake update`
+## 5. 便携盘（portable-chen）：`nh os switch` 还是 `-s` / `-S`？
+
+员工机 `msi-wd` 只有一个 `nixosConfigurations.msi-wd`、**没有机器变体**，
+所以 `-s` / `-S` 在员工机上**永远用不到**。作者机（便携盘，hostname 就是
+`portable-chen`，三台机器的硬件差异走 `specialisation`）要分清三种写法：
+
+| 命令 | 作用 | 什么时候用 |
+|---|---|---|
+| `nh os switch` | 构建并激活**基础系统** + 装 bootloader；装完由 `os-disk/portable-chen/boot-machine.nix` 把**本机变体**写成开机默认条目 | **日常就这一条**（不要 sudo、不要 `-H`、不要 `-s`） |
+| `nh os switch -s <变体>` | 只把**运行中**的系统切到指定变体，不重启 | 不想重启、现在就要进变体（显卡驱动 / 桌面） |
+| `nh os switch -S` | 明确**不要**变体那一步 → 运行中的系统落在基础系统 | 救援入口（只有控制台，没显卡驱动） |
+
+- 变体名 = 本机硬件指纹命中的目录名（`chen-desktop` / `chen-laptop-amd` /
+  `chen-laptop-intel` 之一）：`scripts/detect-machine.sh` 直接打印本机该用哪个，
+  `--probes` 打印指纹（往 `machines/machine-keys.txt` 加新机器时用）。
+- `-s` / `-S` 是 **nh 自带**的 specialisation 选项（`nh os switch --help` 里的
+  `-s, --specialisation` / `-S, --no-specialisation`），不是本仓库的约定。
+  这里的 `-H` 同样不用加：本机 hostname 就是 `portable-chen`，nh 会自己补属性名。
+
+⚠️ **plain `nh os switch` 之后「运行中的系统」是基础系统**（控制台那条，没显卡驱动），
+但**开机默认条目**已经被 `boot-machine.nix` 指向本机变体 —— 所以**重启一次**
+（菜单 5 秒倒计时后零操作）就进本机变体。不想重启就二选一：
+
+```bash
+scripts/detect-machine.sh                           # 先查本机变体（例如 chen-laptop-amd）
+nh os switch -s chen-laptop-amd                     # 换成上一行打印的名字 → 不重启直接切
+sudo systemctl restart auto-machine-specialisation  # 或：走运行期兜底（见 auto-machine.nix）
+```
+
+- 自检现在跑在哪一层：`readlink -f /run/current-system` 与
+  `readlink -f /nix/var/nix/profiles/system` **相同 = 基础系统**；
+  等于 `/nix/var/nix/profiles/system/specialisation/<变体>` 才是变体。
+- 想**常驻**基础系统（而不只是让这次运行落进去）：重启时在菜单里手选基础条目 ——
+  systemd-boot 会把这次选择存进本机 NVRAM 的 `LoaderEntryDefault`，
+  `auto-machine-specialisation` 开机时会尊重这个手选、不再把人切走。
+- 完整成因（两段式自动选机器，NVRAM 与盘上 `loader.conf` 两个目的地）见 README 的
+  specialisation 一节与 `os-disk/portable-chen/{boot-machine,auto-machine}.nix`。
+
+---
+
+## 6. 什么时候该 `nix flake update`
 
 `nix flake update` 升级的是**锁定的输入**（nixpkgs 26.05 分支、home-manager、
 nix-flatpak、llm-agents），也就是"整个系统的软件版本"。**别在员工机上做**：
@@ -153,7 +196,7 @@ nix-flatpak、llm-agents），也就是"整个系统的软件版本"。**别在�
 
 ---
 
-## 6. 改配置速查：改什么 → 哪个文件 → 谁跑什么
+## 7. 改配置速查：改什么 → 哪个文件 → 谁跑什么
 
 | 想改的东西 | 改哪里（作者机） | 生效方式 |
 |---|---|---|
@@ -174,7 +217,7 @@ nix-flatpak、llm-agents），也就是"整个系统的软件版本"。**别在�
 
 ---
 
-## 7. 回滚
+## 8. 回滚
 
 **系统级**
 
@@ -197,7 +240,7 @@ home-manager --rollback
 
 ---
 
-## 8. 磁盘与清理
+## 9. 磁盘与清理
 
 - 自动清理已开：`programs.nh.clean`（`shared/nix.nix`）→ `nh-clean.timer` **每周**跑
   `nh clean all --keep-since 7d --keep 5`。手动跑：`sudo nh clean all`。
@@ -207,7 +250,7 @@ home-manager --rollback
 
 ---
 
-## 9. Flatpak
+## 10. Flatpak
 
 - 系统级应用（`shared/flatpak.nix`：Vivaldi、微信）由 **`flatpak-managed-install.service`**
   在激活时安装；`update.onActivation = true`，所以 `nh os switch` 会顺带更新它们。
@@ -225,7 +268,7 @@ home-manager --rollback
 
 ---
 
-## 10. 排障速查
+## 11. 排障速查
 
 | 现象 | 原因 | 处理 |
 |---|---|---|
@@ -235,9 +278,9 @@ home-manager --rollback
 | `nh home switch` 报 `Read-only file system ... home-path.lock` | `~/.nix-profile` 被手动指到了本代 `home-path` | `readlink ~/.nix-profile` 确认后 `ln -sfn ~/.local/state/nix/profiles/profile ~/.nix-profile` 再 switch |
 | 家目录激活报 `Activation failed` | 同上，或上一次激活半途失败 | 看报错最后一段；上面这条 + 重跑 |
 | 普通用户求值 `/etc/nixos` 报 git 所有权/权限错 | 仓库是 root 所有 | 改用自家 clone：`nh home switch ~/nixos-config#mubimuba` |
-| Flatpak 应用没出现 | 首次安装服务失败 | 见第 9 节 |
+| Flatpak 应用没出现 | 首次安装服务失败 | 见第 10 节 |
 | `ssh` 连不上 | msi-wd 用**默认 22**（作者机才是 555） | `ssh bumooby@<msi-wd-ip>`；端口在 `os-disk/<host>/default.nix` 的 `my.ssh.port` |
-| 系统 switch 后桌面没了 / 只有控制台 | 只可能发生在便携盘（specialisation），员工机没有变体 | 员工机不会出现；便携盘看 README 的 specialisation 一节 |
+| 系统 switch 后桌面没了 / 只有控制台 | 只可能发生在便携盘（specialisation），员工机没有变体 | 员工机不会出现；便携盘见第 5 节（重启一次，或 `nh os switch -s <变体>`） |
 | `nh os info` 提示 profile 与 `/run/current-system` 不同步 | 上次 switch 激活失败 | 重跑 `nh os switch -H msi-wd`，或 `nh os rollback` |
 | `error: ... does not provide attribute 'nixosConfigurations.<名字>'`（名字不是 `msi-wd`） | plain `nh os switch` 是按**本机运行中的 hostname** 补属性名的，而本机 hostname 还不是 `msi-wd`（刚装好/改过名） | 用 `nh os switch -H msi-wd` 显式指定；顺便 `hostname` 确认一下 |
 | `Don't run nh os as root` | `nh` 命令前加了 `sudo` | 去掉 sudo：`nh os switch -H msi-wd`（`nh` 自己会提权） |
@@ -245,12 +288,12 @@ home-manager --rollback
 
 ---
 
-## 11. 不要做的事
+## 12. 不要做的事
 
 1. **不要在员工机上跑 `DEPLOY-INSTALL.md` 的分区/格式化步骤** —— 会抹掉内盘。
 2. **不要直接手改 `/etc/nixos` 里的文件**（除非临时应急并当场 `git add`）——
    作者机才是唯一权威副本。
-3. **不要在员工机上 `nix flake update`** —— 版本漂移由作者机统一升级（第 5 节）。
+3. **不要在员工机上 `nix flake update`** —— 版本漂移由作者机统一升级（第 6 节）。
 4. **不要手动把 `~/.nix-profile` 指到本代 `home-path`** —— 会让下一次 `nh home switch`
    永久失败（README「用户级构建」有完整成因）。
 5. **不要为双系统去改 BIOS 的 Secure Boot / TPM / 启动顺序** —— 内盘 Windows 是
