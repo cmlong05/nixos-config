@@ -13,5 +13,6 @@
     python3            # 不少系统工具/脚本依赖它在 PATH
     wireguard-tools    # wg-quick 需要 root 配置网络
     wget
+    btop
   ];
 }
