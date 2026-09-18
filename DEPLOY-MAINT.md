@@ -256,8 +256,6 @@ home-manager --rollback
 
 - 系统级应用（`shared/flatpak.nix`：Vivaldi、微信）由 **`flatpak-managed-install.service`**
   在激活时安装；`update.onActivation = true`，所以 `nh os switch` 会顺带更新它们。
-- 失败的典型原因：没网 / SJTU 镜像拉不动（remotes 指向 `https://mirror.sjtu.edu.cn/flathub`）。
-  该单元 `Restart=on-failure`、60s 重试；手动重试与看日志：
 
   ```bash
   sudo systemctl start flatpak-managed-install.service
@@ -281,6 +279,7 @@ home-manager --rollback
 | 家目录激活报 `Activation failed` | 同上，或上一次激活半途失败 | 看报错最后一段；上面这条 + 重跑 |
 | 普通用户求值 `/etc/nixos` 报 git 所有权/权限错 | 仓库是 root 所有 | 改用自家 clone：`nh home switch ~/nixos-config#mubimuba` |
 | Flatpak 应用没出现 | 首次安装服务失败 | 见第 10 节 |
+| Flatpak 报 `libostree ... Timeout was reached`，URL 是 `dl.flathub.org` | remote 被仓库的 `redirect-url` 带回官方了（不是 Home 配置写错） | 见第 10 节；`flatpak remotes -d` 看 URL，`systemctl [--user] start flatpak-mirror[-system]` 重新钉回镜像 |
 | `ssh` 连不上 | msi-wd 用**默认 22**（作者机才是 555） | `ssh bumooby@<msi-wd-ip>`；端口在 `os-disk/<host>/default.nix` 的 `my.ssh.port` |
 | 系统 switch 后桌面没了 / 只有控制台 | 只可能发生在便携盘（specialisation），员工机没有变体 | 员工机不会出现；便携盘见第 5 节（重启一次，或 `nh os switch -s <变体>`） |
 | `nh os info` 提示 profile 与 `/run/current-system` 不同步 | 上次 switch 激活失败 | 重跑 `nh os switch -H msi-wd`，或 `nh os rollback` |

@@ -37,12 +37,13 @@ nixos-config/
 │   │   ├── default.nix          # 账户属性（系统侧，无 home-manager 绑定）
 │   │   ├── home.nix             # home 入口（shell + apps + llm + 远程桌面 + 个人应用）
 │   │   ├── apps.nix             # 仅 chen 的 Nix 应用（li-ri）
-│   │   └── flatpak.nix          # 仅 chen 的 Flatpak（QQ / tuxmath，--user 安装）
+│   │   └── flatpak.nix          # 仅 chen 的 Flatpak
 │   ├── mubimuba/                # 员工
 │   │   ├── default.nix          # 账户属性（系统侧）
-│   │   ├── home.nix             # home 入口（shell + apps + 桌面链接，无 llm）
+│   │   ├── home.nix             # home 入口（shell + apps + 桌面链接 + flatpak，无 llm）
 │   │   ├── apps.nix             # 仅 mubimuba 的 Nix 应用（gimp）
-│   │   └── desktop.nix          # 桌面上的 office 网络链接（smb://10.10.10.9/Operation/Product/，密码存 KWallet）
+│   │   ├── desktop.nix          # 桌面上的 office 网络链接（smb://10.10.10.9/Operation/Product/，密码存 KWallet）
+│   │   └── flatpak.nix          # 仅 mubimuba 的 Flatpak（目前为空，只 import 底座）
 │   ├── bumooby/                 # 管理员
 │   │   ├── default.nix          # 账户属性（系统侧）
 │   │   └── home.nix             # home 入口（shell + apps，与 mubimuba 同基线）
@@ -50,7 +51,8 @@ nixos-config/
 │       ├── shell.nix            # bash + direnv
 │       ├── apps.nix             # 用户级共享应用包 = "每个用户都要的基础软件"的统一位置
 │       ├── llm.nix              # llm-agents 工具（dsh / reasonix，仅 chen）
-│       └── remote-desktop.nix   # KDE 远程桌面（KRDP/RDP）用户级：krdpserverrc + 用户服务
+│       ├── remote-desktop.nix   # KDE 远程桌面（KRDP/RDP）用户级：krdpserverrc + 用户服务
+│       └── flatpak.nix          # 用户级 Flatpak 底座
 ├── machines/                    # 机器维度：每台实体机器一个目录
 │   ├── machine-keys.txt         # 机器指纹表（DMI 型号/主板/CPU → 变体名；认机器只看它）
 │   ├── chen-desktop/            # AMD 3900XT + NVIDIA 3060
@@ -79,6 +81,8 @@ nixos-config/
 │       ├── default.nix          # 接线点（imports = machines/employee-3600/）
 │       ├── disk.nix             # ⚠️ 模板（内盘 UUID，装机时生成后填入）
 │       └── users.nix            # 点名单（bumooby + mubimuba）
+├── lib/                         # 纯求值辅助（不是 NixOS/HM 模块，供各处 import）
+│   └── flatpak-mirror.nix       # flathub 镜像清单（主备顺序）+ 签名公钥 —— 唯一权威来源
 └── shared/                      # 系统领域（各安装共用的机级服务）
     ├── boot.nix                 # systemd-boot + 内核
     ├── networking.nix           # NetworkManager
@@ -89,6 +93,7 @@ nixos-config/
     ├── desktop.nix              # SDDM + Plasma 6 / Firefox / PipeWire
     ├── printing.nix             # CUPS + 标签打印机（容错 + 定时重试）
     ├── flatpak.nix              # Flatpak 共享应用（Vivaldi/微信，系统级）
+    │                            #  + flathub 镜像主备（SJTU / USTC）+ flatpak-mirror 钉 URL
     └── packages.nix             # 系统级基础软件（含 vim —— root/救援也要用）
 ```
 
@@ -198,7 +203,7 @@ home-manager --rollback
   - **每个用户都要的桌面/终端应用** → `users/modules/apps.nix`（+ `shell.nix`）：
     一份代码，各人 `home.nix` import，改一处、各人 `nh home switch` 后生效；
   - 某个人自己的 → `users/<name>/`：Nix 包放 `apps.nix`，Flatpak 放 `flatpak.nix`
-    （经 nix-flatpak 的 home-manager 模块以 `--user` 安装，跟人走，别的机器拿不到）；
+
   - `os-disk/<name>/default.nix` **只做接线，不放任何应用**。
 - **用户级构建（2026-09-15）**：home-manager 从 "NixOS 模块" 改为 **standalone
   `homeConfigurations`**（`flake.nix` 的 `mkHome`，每人 `"<user>@<host>"` 与 `"<user>"` 两个名字），
