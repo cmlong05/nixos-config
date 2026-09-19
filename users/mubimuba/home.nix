@@ -21,9 +21,6 @@
   #
   # 激活方式：`nh home switch`。mubimuba 没有 wheel 也不需要提权 ——
   # 用户级构建只写自己的家目录和用户 profile。
-
-  home.stateVersion = "26.05";
-
   # standalone 模式下会真的把 home-manager CLI 装进用户环境
   programs.home-manager.enable = true;
 }
