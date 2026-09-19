@@ -31,7 +31,8 @@
     ../../shared/desktop.nix
     ../../shared/flatpak.nix
     ../../shared/packages.nix
-    # 用户点名单（chen）
+    ../../shared/system-version.nix
+    # 用户名单
     ./users.nix
     # 机器变体（specialisation）
     ./machine_spe.nix
@@ -53,6 +54,4 @@
     enable = true;
     port = 59599;
   };
-
-  system.stateVersion = "26.05";
 }
