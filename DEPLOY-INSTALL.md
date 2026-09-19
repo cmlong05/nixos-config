@@ -1,228 +1,107 @@
-# 员工机（msi-wd）全新安装
+# 新增一台机器：全新安装（通用清单）
 
-**一次性清单**：在同款硬件（AMD CPU + NVIDIA 3060）的新电脑上从零装 NixOS。
+## 1. 装机前把新机器加进仓库
 
-- 装完之后的日常操作（更新系统 / 改配置 / 回滚 / 清理 / 排障）看
-  **[`DEPLOY-MAINT.md`](./DEPLOY-MAINT.md)**。本文件第 1 步会**抹盘**，
-  系统装好之后**绝对不要**再照它跑。
-- 目标机：hostname `msi-wd`，host 定义 `os-disk/msi-wd/`，机器目录 `machines/employee-3600/`。
-- 系统装在**员工机内置硬盘**上（不是移动盘），宿主机与移动盘系统完全独立、互不影响。
-- 两个用户：`bumooby`（管理员，在 `wheel`）+ `mubimuba`（员工，**不在 `wheel`**，不能 sudo）。
+- `machines/<MACHINE>/`
+  `hardware-configuration.nix` 先占位（参考 `machines/employee-3600/`），第 5 步在目标机上重生成；
+  `default.nix` = `imports = [ ./hardware-configuration.nix ];` + 手写尾巴（显卡驱动 / 固件 / 蓝牙，照抄同类机器）。
+- `os-disk/<HOST>/`：参考 `os-disk/msi-wd/` 下的文件
+  `default.nix`改 `networking.hostName`、`my.ssh.port` 等机器差异；
+  `users.nix`
+  `disk.nix` 先留空（第 5 步填挂载行）
+- `users/<name>/`（新用户）：
+  `default.nix` 写账户（管理员加 `wheel`，**不写** `initialPassword`）
+  `home.nix` 参考同级
 
----
+- `flake.nix`：
+  `nixosConfigurations.<HOST> = mkHost ./os-disk/<HOST>/default.nix;`
+  新用户在 `homeConfigurations`加 `"<USER>@<HOST>"` 与 `"<USER>"`。
 
-## 0. 引导介质（二选一，只用来启动安装环境）
+## 2. 引导介质（只用来启动安装环境）
 
-> 介质本身**不写入任何东西** —— 装的是员工机的内置硬盘。
+现成的 NixOS 系统盘（如作者的移动盘）。
 
-- **方式 A：NixOS 安装 U 盘** —— 官网 ISO 写入 U 盘，从 U 盘启动。
-- **方式 B：作者的移动硬盘系统** —— 把跑着本仓库系统的 USB 移动硬盘（作者机本体）
-  插到员工机上并从它启动，即现成的安装环境（工具齐全，且仓库 `~/nixos-config` 就在手边）。
+⚠️ 分区前先 `lsblk -o NAME,SIZE,MODEL,SERIAL,MOUNTPOINTS` 分清哪块是**目标机内盘**，别抹了介质。
 
-两种方式进入的环境相同，后面的步骤完全一致。
+## 3. 分区 / 格式化 / 子卷 / 挂载
 
-> ⚠️ **动手分区前必须 `lsblk` 分清哪块是员工机内盘**。目标是**内置硬盘**，
-> 别把正在当安装环境用的 U 盘/移动硬盘抹了。
->
-> ```bash
-> lsblk -o NAME,SIZE,MODEL,SERIAL,MOUNTPOINTS
-> ```
-
-下文用四个变量代表目标盘与分区，**必须按 `lsblk` 的实际结果替换**（示例为 NVMe 内盘，
-> 实际可能是 `sda`/`nvme1n1`，分区编号也按你分出来的填）：
+布局：EFI(vfat) + btrfs + swap；`/` 用 btrfs 顶层，`/home`、`/nix` 各一个子卷。
 
 ```bash
-DISK=/dev/nvme0n1      # 员工机内盘
-EFI=${DISK}p1          # EFI 分区（vfat）
-ROOT=${DISK}p2         # btrfs 根分区
-SWAP=${DISK}p3         # swap 分区
-```
-
----
-
-## 1. 分区 / 格式化 / 子卷 / 挂载
-
-### 1.1 建挂载点 / 1.2 分区
-
-```bash
+DISK=/dev/nvme0n1; EFI=${DISK}p1; ROOT=${DISK}p2; SWAP=${DISK}p3   # 按 lsblk 改
 sudo mkdir -p /mnt
+# 分区（fdisk / parted / cfdisk 均可）后：
+sudo mkfs.fat -F 32 "$EFI"; sudo mkfs.btrfs -f "$ROOT"; sudo mkswap "$SWAP"
+
+sudo mount "$ROOT" /mnt                     # 顶层子卷就是将来的 /
+sudo btrfs subvolume create /mnt/home; sudo btrfs subvolume create /mnt/nix
+# ⚠️ 不要在这里 umount
+sudo mount -o subvol=home "$ROOT" /mnt/home; sudo mount -o subvol=nix "$ROOT" /mnt/nix
+sudo mkdir -p /mnt/boot; sudo mount "$EFI" /mnt/boot
+findmnt -R /mnt                             # 期望四条：/、/home、/nix、/boot
 ```
 
-按作者机同款布局分三个区：**EFI + btrfs + swap**（`fdisk` / `parted` / `cfdisk` 均可）。
-分完再 `lsblk` 复核一次编号。
+## 4. swap：先换成本机的
 
-### 1.3 格式化（**再确认一次目标盘**）
-
-```bash
-sudo mkfs.fat -F 32 "$EFI"
-sudo mkfs.btrfs -f "$ROOT"
-sudo mkswap "$SWAP"
-```
-
-### 1.4 建子卷 + 挂载（照抄作者机：`/` = btrfs 顶层 + `home` / `nix` 两个子卷）
+生成配置时会把**当前激活的** swap 写进 `swapDevices`，所以先关掉安装环境的：
 
 ```bash
-# 顶层子卷（subvolid=5）就是将来的 /
-sudo mount "$ROOT" /mnt
-sudo btrfs subvolume create /mnt/home
-sudo btrfs subvolume create /mnt/nix
-
-# ⚠️ 不要在这里 umount：上面那份顶层挂载就是 /，后面所有写入都落在它上面
-sudo mount -o subvol=home "$ROOT" /mnt/home
-sudo mount -o subvol=nix  "$ROOT" /mnt/nix
-sudo mkdir -p /mnt/boot
-sudo mount "$EFI" /mnt/boot
-```
-
-> 说明：这条路径与 `os-disk/msi-wd/disk.nix` 一致 —— `/` 挂在 btrfs 顶层
-> （所以那里没有 `subvol=` 选项），`/home`、`/nix` 各挂自己的子卷。
-> 旧版清单在 `btrfs subvolume create` 之后多了一句 `umount /mnt`，
-> 那会让 `/` 无处可挂、`/mnt/home` 也不存在 —— 已去掉。
-
-### 1.5 验证挂载
-
-```bash
-findmnt -R /mnt
-# 期望看到四条：/ （btrfs 顶层）、/home（subvol=home）、/nix（subvol=nix）、/boot（vfat）
-lsblk
-```
-
----
-
-## 2. swap：关掉安装环境的，启用目标盘的
-
-生成 `hardware-configuration.nix` 时，工具会把**当前处于激活状态的** swap 写进配置。
-如果移动盘的 swap 还开着，生成的 `swapDevices` 就会指向**错误的设备**，所以先换过来：
-
-```bash
-swapon --show                            # 先看现在有哪些 swap
-sudo swapoff /dev/<安装环境的 swap>       # 例如作者移动盘的 /dev/sda3；没有就跳过
+swapon --show
+sudo swapoff /dev/<安装环境的 swap>          # 没有就跳过
 sudo swapon "$SWAP"
-swapon --show                            # 只应剩员工机内盘的 swap
+swapon --show          # 只应剩目标机内盘的
 ```
 
----
-
-## 3. 生成该机专属的 `hardware-configuration.nix`
-
-磁盘 UUID 每台机器不同，**不要**用仓库里那份模板。
+## 5. 生成两份"跟机器走"的文件，并把仓库放进 `/mnt/etc/nixos`
 
 ```bash
+# 5.1 完整生成（含 fileSystems + swapDevices），备份后要用
 sudo nixos-generate-config --root /mnt
-cat /mnt/etc/nixos/hardware-configuration.nix   # 交给 AI 核对
+sudo cp /mnt/etc/nixos/hardware-configuration.nix /tmp/hw-full.nix
+
+# 5.2 放入仓库：本地拷（无网络也行）或 clone
+sudo rm -rf /mnt/etc/nixos && sudo mkdir -p /mnt/etc/nixos
+sudo cp -a <REPO>/. /mnt/etc/nixos/                              # 连 .git 一起
+# 或：sudo git clone https://github.com/cmlong05/nixos-config.git /mnt/etc/nixos
+
+# 5.3 把 /tmp/hw-full.nix 的 fileSystems + swapDevices 原样填进 disk.nix，再核对
+sudoedit /mnt/etc/nixos/os-disk/<HOST>/disk.nix
+grep -n by-uuid /mnt/etc/nixos/os-disk/<HOST>/disk.nix /tmp/hw-full.nix
+
+# 5.4 硬件探测部分（勿手改）：生成到临时 root，避免往仓库里丢 configuration.nix
+sudo nixos-generate-config --no-filesystems --root /tmp/hw
+sudo cp /tmp/hw/etc/nixos/hardware-configuration.nix \
+        /mnt/etc/nixos/machines/<MACHINE>/hardware-configuration.nix
+
+# 5.5 进 git 索引（否则求值报 is not tracked by Git）
+sudo git -C /mnt/etc/nixos add -A && sudo git -C /mnt/etc/nixos status --short
 ```
 
----
+> 别在目标机 `git commit`：`disk.nix` / `hardware-configuration.nix` 是这台机器特有的，留在工作区即可
+> （pull 冲突的处理见 [`DEPLOY-MAINT.md`](./DEPLOY-MAINT.md) §4）。装前建议把这两份和 `/tmp/hw-full.nix` 一起复核一遍。
 
-## 4. 把仓库放进 `/mnt/etc/nixos`
-
-### 4.1 备份刚生成的完整硬件配置 + 拷仓库
+## 6. 安装
 
 ```bash
-# 确认仓库在（方式 B 时它就在移动盘上）
-ls ~/nixos-config/flake.nix && echo OK
-
-# 备份刚生成的硬件配置（后面取挂载行用）
-sudo cp /mnt/etc/nixos/hardware-configuration.nix /tmp/hw-chen-generated.nix
-
-# 把本仓库复制到 /mnt/etc/nixos/
-sudo rm -rf /mnt/etc/nixos
-sudo mkdir -p /mnt/etc/nixos
-sudo cp -a ~/nixos-config/. /mnt/etc/nixos/
+sudo nixos-install --flake /mnt/etc/nixos#<HOST>
+sudo reboot          # 重启前拔掉介质
 ```
 
-### 4.2 覆盖 `os-disk/msi-wd/disk.nix` 的挂载行
+- 会交互式要求设 root 密码；**不要** `--no-root-passwd`。
+- 仓库没写 `initialPassword` → 第一次开机用 root 在 TTY 上给各用户 `passwd`；
+  安装环境有 `nixos-enter` 也可现在设：`sudo nixos-enter --root /mnt -c 'passwd <USER>'`。
 
-挂载行（`fileSystems` + `swapDevices`）跟盘走。把 `/tmp/hw-chen-generated.nix` 里
-这两段**原样**替换进 `os-disk/msi-wd/disk.nix` 的同名内容（UUID 以生成结果为准；
-模板里 `/boot` 的 `fmask=0077` / `dmask=0077` 之类可选项想保留就手动带上）。
+## 7. 第一次开机后
 
-### 4.3 覆盖 `machines/employee-3600/hardware-configuration.nix`
+1. Flatpak（若该 host 用了 `shared/flatpak.nix`）：失败就 `sudo systemctl start flatpak-managed-install.service`。
+2. 每个用户自己跑 `nh home switch`（管理员可代跑 `sudo -u <USER> -i nh home switch`）。
+3. `<USER>` 刻意不在 `wheel`；要提权就改 `users/<USER>/default.nix` 的 `extraGroups` 再 switch 一次。
 
-硬件探测部分用 `--no-filesystems` 直接生成（工具自行省略挂载，**勿手改**）：
+## 8. 自检
 
 ```bash
-sudo nixos-generate-config --no-filesystems --root /mnt
-# 生成物是 /mnt/etc/nixos/hardware-configuration.nix —— 搬进仓库的机器目录：
-sudo cp /mnt/etc/nixos/hardware-configuration.nix \
-        /mnt/etc/nixos/machines/employee-3600/hardware-configuration.nix
-# 顺手删掉仓库根目录下那份多余的：
-sudo rm /mnt/etc/nixos/hardware-configuration.nix
+hostname; nh os info | head; sudo systemctl --failed
+nh os switch -H <HOST>       # 幂等：再跑一次应无改动
+nh home switch               # 各用户
+flatpak list; lsblk; findmnt -R /
 ```
-
-### 4.4 核对落盘结果
-
-```bash
-ls /mnt/etc/nixos/flake.nix \
-   /mnt/etc/nixos/os-disk/msi-wd/default.nix \
-   /mnt/etc/nixos/os-disk/msi-wd/disk.nix \
-   /mnt/etc/nixos/machines/employee-3600/hardware-configuration.nix
-
-# flake 只把 git 索引里的文件当源码：新增文件必须先 add，否则求值报 "is not tracked by Git"
-sudo git -C /mnt/etc/nixos add -A
-sudo git -C /mnt/etc/nixos status --short
-```
-
-> 这两处覆盖最容易出错，建议把 `disk.nix`、`hardware-configuration.nix`
-> 和 `/tmp/hw-chen-generated.nix` 一起交给 AI 复核一遍再装。
-
----
-
-## 5. 安装
-
-```bash
-sudo nixos-install --flake /mnt/etc/nixos#msi-wd
-```
-
-- 安装过程会**交互式要求设置 root 密码**，请照做；**不要**用 `--no-root-passwd`
-  （装完就没有可用的提权入口）。
-- 仓库里**没有**为 `bumooby` / `mubimuba` 写 `initialPassword`，
-  所以装完第一次开机要先用 root 在 TTY 上给两个用户设密码：
-  `passwd bumooby`、`passwd mubimuba`。不设的话 SDDM 里这两个账号登不进去。
-
-```bash
-sudo reboot
-```
-重启前记得**拔掉安装介质**（或确认启动顺序指向内盘）。
-
----
-
-## 6. 第一次开机后
-
-1. **Flatpak 应用是「首次启动时由系统服务安装」**（`flatpak-managed-install.service`）。
-   员工机刚装好时这个服务很可能失败/没跑成功（安装时无网络、或 SJTU flatpak 镜像拉不动）。
-   失败它会每 60s 自己重试；想立刻重试：
-   ```bash
-   sudo systemctl start flatpak-managed-install.service
-   sudo journalctl -u flatpak-managed-install -n 50
-   ```
-2. **每个用户在自己的账号下跑一次家目录激活**（系统不再代劳，详见 README「用户级构建」）：
-   ```bash
-   nh home switch          # 不要 sudo
-   ```
-   管理员可代跑：`sudo -u bumooby -i nh home switch`、`sudo -u mubimuba -i nh home switch`。
-   跑之前家目录里还没有这套 dotfiles 与用户级应用（系统级包不受影响，
-   `nh` 本身在 `/run/current-system/sw/bin`，所以引导没问题）。
-   桌面上 office 链接指向 SMB 共享 `\\10.10.10.9\Operation\Product`，
-   第一次双击时输一次并勾「记住密码」（存进该用户自己的 KWallet，
-   之后不再弹框）——见 `users/mubimuba/desktop.nix` 的说明。
-3. `mubimuba` **没有 wheel（无 sudo）**；真要给他提权，把 `wheel`
-   加回 `users/mubimuba/default.nix` 的 `extraGroups`（然后系统级 switch 一次）。
-4. 员工机上需要哪些用户级应用：改 `users/mubimuba/home.nix`（人人都要的改
-   `users/modules/apps.nix`）。
-
----
-
-## 7. 装机后自检
-
-```bash
-hostname                       # msi-wd
-nh os info | head              # 有系统世代
-sudo systemctl --failed        # 无 failed（flatpak 那条见第 6 节）
-nh os switch -H msi-wd         # 不要 sudo；-H 显式指定主机（幂等：再 switch 一次应无改动）
-nh home switch                 # 各用户各自跑
-flatpak list                   # Vivaldi / WeChat 是否装上
-lsblk                          # 确认 /、/home、/nix、/boot 都来自内盘
-```
-
-之后一律走 **[`DEPLOY-MAINT.md`](./DEPLOY-MAINT.md)**。
