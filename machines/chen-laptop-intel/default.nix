@@ -10,9 +10,10 @@
   hardware.enableRedistributableFirmware = true;
   hardware.graphics.enable = true;
 
-  # Intel 内显 VA-API 硬解：当前 /run/opengl-driver/lib 里没有 iHD / vpl，视频解码全走 CPU。
-  # 需要时取消注释（可选再加 vpl-gpu-rt）：
-  #   hardware.graphics.extraPackages = with pkgs; [ intel-media-driver ];
+  hardware.graphics.extraPackages = with pkgs; [
+    intel-media-driver
+    vpl-gpu-rt
+  ];
 
   hardware.bluetooth.enable = true;
   hardware.bluetooth.powerOnBoot = true;
