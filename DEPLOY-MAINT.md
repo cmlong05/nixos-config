@@ -52,10 +52,12 @@ sudo git -C /etc/nixos add -A
 
 ## 5. 更新系统
 
-以 `bumooby` 登录，先按 §4 拉改动，然后：
+以 `mubimuba` 登录，先按 §4 拉改动，然后：
 
 ```bash
-nh os switch -H msi-wd        # 不要 sudo
+# 清除并重建为bumooby的登录环境。如果不加”-“，将任然不吃mubimuba的部分登陆环境，导致$XDG_CACHE_HOME任然为mubimuba的
+su - bumooby
+nh os switch
 ```
 
 - **改了内核 / NVIDIA 驱动 / initrd** → `sudo reboot`（内核只有 `nix flake update` 后才变）。
