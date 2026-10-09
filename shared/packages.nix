@@ -14,5 +14,6 @@
     wireguard-tools    # wg-quick 需要 root 配置网络
     wget
     btop
+    usbutils
   ];
 }

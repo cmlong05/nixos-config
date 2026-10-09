@@ -103,7 +103,7 @@ commit `flake.lock` → push，员工机只 pull。
 | 某个人的 Nix 应用 | `users/<name>/apps.nix` | 该用户 `nh home switch` |
 | office 网络文件夹链接 | `users/mubimuba/desktop.nix` | mubimuba `nh home switch`；首次双击输一次密码并勾「记住密码」 |
 | 登录界面列哪些用户 | `os-disk/msi-wd/default.nix`（`hiddenUsers`） | `nh os switch -H msi-wd` |
-| 时区 / 硬件时钟(RTC 走本地时间) / locale / 字体 / 输入法 | `shared/locale.nix` | 同上；RTC 本身可用一次 `sudo hwclock --systohc` 立即改成本地时间 |
+| 时区 / 硬件时钟存 UTC / locale / 字体 / 输入法 | `shared/locale.nix` | 同上
 
 ## 10. 回滚
 

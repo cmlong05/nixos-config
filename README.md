@@ -65,6 +65,7 @@ nix flake update             # 升级输入（只在作者机做）；nix flake 
 
 # 便携盘：换机器零命令（见 §6）
 scripts/detect-machine.sh            # 打印本机变体名；--probes 打印指纹
+scripts/which-spec.sh                # 现在跑在哪个变体里？跑得对不对？（只读，不用 root，见 §6）
 nh os switch -s chen-laptop-intel    # 只切「运行中」的系统到该变体（不重启）
 nh os switch -S                      # 保留基础系统（控制台救援入口）
 ```
@@ -93,4 +94,11 @@ home-manager generations / home-manager --rollback
   运行期 `auto-machine.nix` 在换机器后开机时补写并把当前这次也切过去。
   默认条目写两处：本机 NVRAM(BIOS/UEFI)的 `LoaderEntryDefault`（跟机器走，优先）+ 盘上 `loader.conf`（跟盘走，兜底）。
   第一次到某台机器仍需菜单手选一次；指纹认不出只打日志，不会卡启动。
+- **进来之后怎么确认「进对了」**：`scripts/which-spec.sh`（只读、不用 root）。三个独立证据：
+  ① 跑的是哪个变体 = `/run/current-system` ↔ `/nix/var/nix/profiles/system/specialisation/*` 的符号链接
+  （变体自己的 store 里 `specialisation/` 是空的，别拿 `/run/current-system/specialisation` 找）；
+  ② 开机菜单实际选了哪条 = EFI 变量 `LoaderEntrySelected`（systemd-boot 自己写的，最权威；
+  `LoaderTimeMenuUSec` 很短=倒计时自动、很长=当时有人手选）；
+  ③ 是不是运行期被 `auto-machine` 切过来的 = `/run/booted-system` ≠ `/run/current-system`
+  （那时配置换了、内核没换）。
 
