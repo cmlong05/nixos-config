@@ -4,20 +4,11 @@
 {
   imports = [ ./printing.nix ];
 
-  # Enable the X11 windowing system.
-  # You can disable this if you're only using the Wayland session.
-  services.xserver.enable = false;
+  # Wayland only
 
   # Enable the KDE Plasma Desktop Environment.
   services.displayManager.sddm.enable = true;
   services.desktopManager.plasma6.enable = true;
-
-
-  # Configure keymap in X11
-  services.xserver.xkb = {
-    layout = "cn";
-    variant = "";
-  };
 
   # 浏览器：Firefox（经 programs 模块启用）
   programs.firefox = {
@@ -29,6 +20,13 @@
   # 重启后恢复上次会话
   environment.etc."chromium/policies/recommended/restore-session.json".text = ''
     { "RestoreOnStartup": 1 }
+  '';
+
+  # Dolphin：让 SMB 等远程位置上的文件也显示缩略图预览
+  environment.etc."xdg/dolphinrc".text = ''
+    [PreviewSettings]
+    MaximumRemoteSize=2097152
+    EnableRemoteFolderThumbnail=true
   '';
 
   # Enable sound with pipewire.
