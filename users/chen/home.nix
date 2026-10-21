@@ -3,11 +3,11 @@
 
 {
   imports = [
-    ../modules/shell.nix
-    ../modules/apps.nix
-    ../modules/llm.nix
+    ../__modules/shell.nix
+    ../__modules/apps.nix
+    ../__modules/llm.nix
     # KDE 远程桌面（KRDP/RDP）用户级服务（默认关，下面显式打开）
-    ../modules/remote-desktop.nix
+    ../__modules/remote-desktop.nix
     # 仅 chen 个人的应用
     ./apps.nix
     ./flatpak.nix

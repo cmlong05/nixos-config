@@ -6,7 +6,7 @@
 # 默认 enable = false：员工机（msi-wd）不受影响，要开就在各自的 host 里显式打开。
 #
 # 为什么远程桌面还要一个"系统模块"？因为服务本体是**用户级**的（krdpserver 跑在
-# 用户会话里，见 users/modules/remote-desktop.nix），系统侧就只剩一件事：
+# 用户会话里，见 users/__modules/remote-desktop.nix），系统侧就只剩一件事：
 #
 #   防火墙放行。NixOS 默认**开着**防火墙（networking.firewall.enable 默认 true），
 #   本仓库没有关掉它；不放行的话局域网根本连不上，改端口也白改。
@@ -22,7 +22,7 @@
 #
 # ⚠️ 端口在这个仓库里是**两处**：
 #     系统侧 = 本文件的 my.remoteDesktop.port（只影响防火墙放行）
-#     用户侧 = users/modules/remote-desktop.nix 的 my.remoteDesktop.port（真的监听端口）
+#     用户侧 = users/__modules/remote-desktop.nix 的 my.remoteDesktop.port（真的监听端口）
 #   sshd 是系统服务，端口只有系统侧一处；krdpserver 是用户服务，防火墙与配置天然分属
 #   两层，改端口时两边都要改，否则出现"服务在听 59599、防火墙只放 3389"这种连不上的状态。
 { config, lib, ... }:

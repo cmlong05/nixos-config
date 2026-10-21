@@ -3,7 +3,7 @@
 
 {
   imports = [
-    ../modules/flatpak.nix
+    ../__modules/flatpak.nix
   ];
 
   # services.flatpak.packages = [

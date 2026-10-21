@@ -36,7 +36,7 @@
 
       # 用户侧：standalone home-manager 配置，由用户自己激活
 
-      # 所有用户共用的用户级基线在 users/modules/（apps.nix、shell.nix）
+      # 所有用户共用的用户级基线在 users/__modules/（apps.nix、shell.nix）
       mkHome = { user, modules }: home-manager.lib.homeManagerConfiguration {
         # standalone 没有 useGlobalPkgs，必须自己构造 pkgs；与系统保持一致：
         # 镜像 shared/nix.nix 的 nixpkgs.config.allowUnfree。

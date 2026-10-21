@@ -52,7 +52,7 @@ nixos-config/
 
 **应用分配**：
 机器基础（root / 救援）→ `shared/packages.nix`；
-所有用户 → `users/modules/apps.nix`；
+所有用户 → `users/__modules/apps.nix`；
 个人用户 → `users/<name>/apps.nix` 或 `flatpak.nix`。
 
 ## 4. 常用命令

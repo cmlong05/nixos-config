@@ -4,8 +4,8 @@
 {
   imports = [
     # 与 mubimuba 完全同一套用户级基线：shell（bash + direnv）+ 共享应用包
-    ../modules/shell.nix
-    ../modules/apps.nix
+    ../__modules/shell.nix
+    ../__modules/apps.nix
   ];
 
   # 无需手写 home.username / home.homeDirectory：由 flake.nix 的 mkHome 注入

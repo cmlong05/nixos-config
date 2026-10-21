@@ -99,7 +99,7 @@ commit `flake.lock` → push，员工机只 pull。
 | 机器硬件（显卡 / 固件尾巴） | `machines/employee-3600/default.nix` | 同上 |
 | 硬件探测（**生成物，勿手改**） | `machines/employee-3600/hardware-configuration.nix` | 重生成后同上 |
 | 挂载 / swap（跟盘走） | `os-disk/msi-wd/disk.nix` | 同上（`/boot` 改动要重启） |
-| 人人要的桌面 / 终端应用 | `users/modules/apps.nix` | 各人 `nh home switch` |
+| 人人要的桌面 / 终端应用 | `users/__modules/apps.nix` | 各人 `nh home switch` |
 | 某个人的 Nix 应用 | `users/<name>/apps.nix` | 该用户 `nh home switch` |
 | office 网络文件夹链接 | `users/mubimuba/desktop.nix` | mubimuba `nh home switch`；首次双击输一次密码并勾「记住密码」 |
 | 登录界面列哪些用户 | `os-disk/msi-wd/default.nix`（`hiddenUsers`） | `nh os switch -H msi-wd` |

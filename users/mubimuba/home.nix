@@ -4,9 +4,9 @@
 {
   imports = [
     # 员工机沿用同一套 shell
-    ../modules/shell.nix
+    ../__modules/shell.nix
     # 用户级 GUI 应用
-    ../modules/apps.nix
+    ../__modules/apps.nix
     # 仅 mubimuba 个人的应用（员工机 msi-wd）
     ./apps.nix
     # 用户级 Flatpak
