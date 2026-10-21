@@ -94,7 +94,11 @@ expected="$(bash "$detect" --table "$keys" 2> /dev/null || true)"
 # 条目名形如 nixos-generation-86-specialisation-chen-desktop.conf：直接读出变体名。
 selected="$(efi_str LoaderEntrySelected)"
 default_entry="$(efi_str LoaderEntryDefault)"
-menu_us="$(efi_dec LoaderTimeMenuUSec)"
+# LoaderTime* 是 systemd-boot 的单调计时检查点，不是各自的耗时：
+#   Init = 初始化完成，Menu = 进入菜单，Exec = 离开菜单、开始启动所选条目。
+# 所以菜单实际停留时间是 Exec - Menu；直接打印 Menu 会得到自开机以来约十几秒的累计值。
+menu_start_us="$(efi_dec LoaderTimeMenuUSec)"
+menu_end_us="$(efi_dec LoaderTimeExecUSec)"
 booted_variant=""
 entry_spe="${selected#*specialisation-}"
 if [ "$entry_spe" != "$selected" ]; then
@@ -129,8 +133,10 @@ printf '本机指纹   : %s\n' "${expected:-（认不出：scripts/detect-machin
 printf '菜单默认   : NVRAM(LoaderEntryDefault) = %s\n' "${default_entry:-（读不到/没种过）}"
 printf '             盘上(loader.conf)         = %s\n' "$disk_default"
 printf '实际启动   : NVRAM(LoaderEntrySelected) = %s\n' "${selected:-（读不到）}"
-if [ -n "$menu_us" ] && [ "$menu_us" -gt 0 ] 2> /dev/null; then
-  printf '             菜单停留 = %s ms（boot.loader.timeout 一般是 5 s —— 明显更长=当时有人手选）\n' \
+if [ -n "$menu_start_us" ] && [ -n "$menu_end_us" ] &&
+  [ "$menu_end_us" -ge "$menu_start_us" ] 2> /dev/null; then
+  menu_us=$((menu_end_us - menu_start_us))
+  printf '             菜单停留 = %s ms（LoaderTimeExecUSec - LoaderTimeMenuUSec）\n' \
     "$((menu_us / 1000))"
 fi
 if [ -n "$booted_variant" ] && [ -n "$variant" ] && [ "$booted_variant" != "$variant" ]; then

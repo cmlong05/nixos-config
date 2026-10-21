@@ -98,7 +98,7 @@ home-manager generations / home-manager --rollback
   ① 跑的是哪个变体 = `/run/current-system` ↔ `/nix/var/nix/profiles/system/specialisation/*` 的符号链接
   （变体自己的 store 里 `specialisation/` 是空的，别拿 `/run/current-system/specialisation` 找）；
   ② 开机菜单实际选了哪条 = EFI 变量 `LoaderEntrySelected`（systemd-boot 自己写的，最权威；
-  `LoaderTimeMenuUSec` 很短=倒计时自动、很长=当时有人手选）；
+  菜单停留时长 = `LoaderTimeExecUSec - LoaderTimeMenuUSec`。`LoaderTimeMenuUSec` 只是进入菜单时的
+  计时检查点，不是停留时长；正常倒计时约等于 `boot.loader.timeout`，明显更长则可能有人手选）；
   ③ 是不是运行期被 `auto-machine` 切过来的 = `/run/booted-system` ≠ `/run/current-system`
   （那时配置换了、内核没换）。
-
