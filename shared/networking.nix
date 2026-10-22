@@ -12,6 +12,13 @@
   # Enable networking
   networking.networkmanager.enable = true;
 
+  # mDNS/DNS-SD 局域网服务发现（打印机、设备等）。
+  # 不启用 nssmdns4：它依赖 system.nssModules，而下面为关闭 nscd 已强制清空该列表。
+  services.avahi = {
+    enable = true;
+    openFirewall = true;
+  };
+
   # 关掉 nscd（NixOS 默认开，实现是 Rust 写的 nsncd）：
   # 开关 WiFi 时「整机卡住几秒」的元凶就是它，链路如下 ——
   #   1) 网络状态一变（开关 WiFi、DHCP 续租、改 DNS），NetworkManager 就重写 resolv.conf；
@@ -61,7 +68,7 @@
   #     对应模块时按「不可用」跳过，不会卡；passwd/group/shadow 照走 files，hosts 走
   #     files + dns（/etc/hosts 里已有 localhost 与 portable-chen）。
   #   - 失去的只是 userdb 那类查询：本机没有 DynamicUser 单元、不用 systemd-nspawn/homed，
-  #     也没有开 samba/sssd/avahi/libvirtd-nss 任何一个（它们才会往这个列表里加东西）。
+  #     也没有开 samba/sssd/avahi 的 nssmdns/libvirtd-nss 任何一个（它们才会往这个列表里加东西）。
   # 若哪天真的需要 nss-systemd（例如用 homed / nspawn），就把上面 nscd 那两行换成
   # `services.nscd.enableNsncd = false;`（保留 glibc nscd，卡顿只会退化到 ~1.4s 而不是消失）。
   system.nssModules = lib.mkForce [ ];
