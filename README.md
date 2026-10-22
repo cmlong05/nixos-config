@@ -3,7 +3,8 @@
 | 文档 | 用途 |
 |---|---|
 | **README.md**（本文） | 仓库结构、设计、踩坑、待办 |
-| [`DEPLOY-INSTALL.md`](./DEPLOY-INSTALL.md) | **新增一台机器**：通用装机清单 |
+| [`DEPLOY-ADD-PC.md`](./DEPLOY-ADD-PC.md) | **新 PC 复用便携盘**：加机器变体、网卡 MAC 并首次切换 |
+| [`DEPLOY-INSTALL.md`](./DEPLOY-INSTALL.md) | **新 PC 独立安装**：分区、生成配置、装系统 |
 | [`DEPLOY-MAINT.md`](./DEPLOY-MAINT.md) | 已装机器：更新 / 改配置 / 回滚 / 排障 |
 
 ## 1. 两层构建
@@ -24,7 +25,7 @@
 挂载信息在硬盘中 os-disk/*name*/disk.nix中
 
 `machines/<机器>/` = 一台实体机器：`hardware-configuration.nix`（生成，勿手改）+ `default.nix`（手写尾巴）。
-`machine-keys.txt` 只是便携盘的指纹表，**独立安装的机器不看它**。
+`machine-fingerprints.conf` 是便携盘的机器 MAC 表，**独立安装的机器不看它**。
 
 ## 3. 目录与判据
 
@@ -34,7 +35,7 @@ nixos-config/
 ├── users/                   # 人：default.nix（账户）+ home.nix（家目录入口）+ 个人 apps/flatpak
 │   ├── chen/ mubimuba/ bumooby/
 │   └── modules/             # 用户域共享：shell / apps / llm(仅 chen) / remote-desktop / flatpak
-├── machines/                # 每台机器一个目录 + machine-keys.txt（便携盘指纹表）
+├── machines/                # 每台机器一个目录 + machine-fingerprints.conf（便携盘 MAC 表）
 ├── os-disk/                 # 一次安装 = 一个目录
 │   ├── portable-chen/       # 便携盘：disk / swap(zram) / machine_spe(变体) / boot-machine + auto-machine(认机器)
 │   └── msi-wd/              # 员工机：default / disk / users
@@ -64,7 +65,7 @@ nh home switch               # 用户级，各人自己；-c chen@portable-chen 
 nix flake update             # 升级输入（只在作者机做）；nix flake check 求值校验
 
 # 便携盘：换机器零命令（见 §6）
-scripts/detect-machine.sh            # 打印本机变体名；--probes 打印指纹
+scripts/detect-machine.sh            # 打印本机变体名；--probes 打印物理网卡 MAC
 scripts/which-spec.sh                # 现在跑在哪个变体里？跑得对不对？（只读，不用 root，见 §6）
 nh os switch -s chen-laptop-intel    # 只切「运行中」的系统到该变体（不重启）
 nh os switch -S                      # 保留基础系统（控制台救援入口）
@@ -89,11 +90,16 @@ home-manager generations / home-manager --rollback
 一块移动盘、一次安装、跨多台机器；硬件差异通过 `machine_spe.nix/specialisation`引入 machines
 
 - **基础系统只带盘、不带硬件** → 能引导但只有控制台，是救援入口；每增加一台具体机器就多一份系统闭包。
-- **自动认机器**（`machine-keys.txt` + `detect-machine.sh`，写条目用 `set-default-entry.sh`）分两段：
+- 给便携盘增加一台 PC 的完整步骤见 [`DEPLOY-ADD-PC.md`](./DEPLOY-ADD-PC.md)。
+- **自动认机器**（`machine-fingerprints.conf` + `detect-machine.sh`）分两段：
   部署期 `boot-machine.nix` 在 `nh os switch` 后把本机变体写成默认条目（**不做就只有基础系统，进不了桌面**）；
   运行期 `auto-machine.nix` 在换机器后开机时补写并把当前这次也切过去。
   默认条目写两处：本机 NVRAM(BIOS/UEFI)的 `LoaderEntryDefault`（跟机器走，优先）+ 盘上 `loader.conf`（跟盘走，兜底）。
-  第一次到某台机器仍需菜单手选一次；指纹认不出只打日志，不会卡启动。
+  第一次到某台机器仍需菜单手选一次；MAC 认不出只打日志，不会卡启动。
+- **匹配依据**：只精确匹配物理网卡 MAC，一个机器段可以写多个 MAC。
+  整机型号、主板型号和 CPU 只作为 `which-spec.sh` 的展示特征，不参与匹配。
+  多个机器同时命中时会拒绝猜测。原始 MAC 直接保存在表中，MAC 可伪造，
+  因此它只用于选择 hardware specialisation，不是安全认证。
 - **进来之后怎么确认「进对了」**：`scripts/which-spec.sh`（只读、不用 root）。三个独立证据：
   ① 跑的是哪个变体 = `/run/current-system` ↔ `/nix/var/nix/profiles/system/specialisation/*` 的符号链接
   （变体自己的 store 里 `specialisation/` 是空的，别拿 `/run/current-system/specialisation` 找）；

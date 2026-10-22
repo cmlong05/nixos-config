@@ -73,6 +73,9 @@ nh home build             # 只构建；nh home switch -c mubimuba@msi-wd 显式
 
 ## 7. 便携盘 `portable-chen`
 
+把一台新 PC 加入便携盘（不重装系统）见
+[`DEPLOY-ADD-PC.md`](./DEPLOY-ADD-PC.md)。
+
 | 命令 | 作用 |
 |---|---|
 | `nh os switch` | 日常就这一条：激活基础系统 + 装 bootloader，并把本机变体写成开机默认条目 |

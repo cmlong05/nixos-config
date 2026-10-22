@@ -14,14 +14,14 @@
 #                        就是 auto-machine 在开机后切过来的：配置换了，内核没换
 #
 # 用法：scripts/which-spec.sh
-# 退出码：0 = 在正确的变体里；1 = 不在变体里 / 变体与本机指纹不符。
+# 退出码：0 = 在正确的变体里；1 = 不在变体里 / 变体与本机 MAC 不符。
 set -uo pipefail
 
 self="${BASH_SOURCE[0]}"
 dir="${self%/*}"
 [ "$dir" = "$self" ] && dir="."
 detect="$dir/detect-machine.sh"
-keys="$dir/../machines/machine-keys.txt"
+keys="$dir/../machines/machine-fingerprints.conf"
 
 cur="$(readlink -f /run/current-system 2> /dev/null || true)"
 booted="$(readlink -f /run/booted-system 2> /dev/null || true)"
@@ -89,6 +89,10 @@ fi
 
 # —— B. 本机应该是哪个变体 ——
 expected="$(bash "$detect" --table "$keys" 2> /dev/null || true)"
+details=""
+if [ -n "$expected" ]; then
+  details="$(bash "$detect" --table "$keys" --describe "$expected" 2> /dev/null || true)"
+fi
 
 # —— C. systemd-boot 实际启动的条目（最权威的「开机菜单选了哪条」）——
 # 条目名形如 nixos-generation-86-specialisation-chen-desktop.conf：直接读出变体名。
@@ -129,7 +133,8 @@ else
   printf '             /run/booted-system  = %s\n' "$booted"
   printf '             ⚠ 两者不同：运行时被切换过（auto-machine），内核/initrd 仍是开机那个\n'
 fi
-printf '本机指纹   : %s\n' "${expected:-（认不出：scripts/detect-machine.sh --probes 看指纹，再往 machines/machine-keys.txt 加行）}"
+printf '本机身份   : %s\n' "${expected:-（认不出：scripts/detect-machine.sh --probes 看物理网卡 MAC，再往 machines/machine-fingerprints.conf 添加）}"
+[ -n "$details" ] && printf '%s\n' "$details"
 printf '菜单默认   : NVRAM(LoaderEntryDefault) = %s\n' "${default_entry:-（读不到/没种过）}"
 printf '             盘上(loader.conf)         = %s\n' "$disk_default"
 printf '实际启动   : NVRAM(LoaderEntrySelected) = %s\n' "${selected:-（读不到）}"
@@ -149,11 +154,11 @@ if [ -z "$variant" ]; then
   printf '结论       : ⚠ 不在任何机器变体里 —— 没有显卡驱动、进不了桌面（菜单里手选变体条目）\n'
   status=1
 elif [ -n "$expected" ] && [ "$variant" != "$expected" ]; then
-  printf '结论       : ⚠ 跑的是 %s，本机指纹是 %s —— 重启，或 sudo systemctl restart auto-machine-specialisation\n' "$variant" "$expected"
+  printf '结论       : ⚠ 跑的是 %s，本机身份是 %s —— 重启，或 sudo systemctl restart auto-machine-specialisation\n' "$variant" "$expected"
   status=1
 elif [ -n "$expected" ]; then
   printf '结论       : ✓ 正确：%s 跑在 %s 上\n' "$variant" "$expected"
 else
-  printf '结论       : 变体 %s 在跑，但认不出本机 → 无法判断对错（看上面指纹，往 machines/machine-keys.txt 加行）\n' "$variant"
+  printf '结论       : 变体 %s 在跑，但认不出本机 → 无法判断对错（看上面 MAC，往 machines/machine-fingerprints.conf 添加）\n' "$variant"
 fi
 exit "$status"

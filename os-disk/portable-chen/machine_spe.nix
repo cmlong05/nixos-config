@@ -50,5 +50,10 @@
       imports = [ ../../machines/chen-laptop-intel ];
       my.portableChen.wifiOnBoot = true;
     };
+
+    specialisation.dell-intel.configuration = {
+      imports = [ ../../machines/dell-intel ];
+      my.portableChen.wifiOnBoot = true;
+    };
   };
 }

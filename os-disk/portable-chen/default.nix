@@ -1,4 +1,4 @@
-# 便携盘安装（portable-chen）—— 一次安装跨 3 台机器
+# 便携盘安装（portable-chen）—— 一次安装跨多台机器
 #
 # 硬件全部下放到每台机器的 specialisation（machines/chen-*.nix：硬件探测 +
 # 手写尾巴）。基础系统只保留盘（./disk.nix：挂载 + 读盘 initrd 模块，3 台机器共用
@@ -10,7 +10,7 @@
 #   ./boot-machine.nix  部署期：nh os switch 装完 bootloader 后，把默认条目
 #                       指向本机变体 → 开机零选择直接进本机
 #   ./auto-machine.nix  运行期：盘插到没 rebuild 过的机器上时，开机后自动切变体
-# 两个都靠 machines/machine-keys.txt 的硬件指纹 + scripts/detect-machine.sh 认机器。
+# 两个都靠 machines/machine-fingerprints.conf 的物理网卡 MAC + scripts/detect-machine.sh 认机器。
 { ... }:
 
 {
