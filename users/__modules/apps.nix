@@ -16,7 +16,6 @@
       kdePackages.kate
       kdePackages.krdc
       kdePackages.fcitx5-configtool
-      telegram-desktop
       vscodium
 
       # 终端与办公
