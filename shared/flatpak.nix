@@ -44,6 +44,7 @@ in
     packages = [
       "com.vivaldi.Vivaldi"
       "com.tencent.WeChat"
+      "com.opera.Opera"
     ];
 
     remotes = [
