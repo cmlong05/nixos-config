@@ -20,25 +20,29 @@ let
   ensurePrinterTolerant = p: ''
     if ${pkgs.cups}/bin/lpadmin ${lpadminArgs p} -E; then
       echo "ensure-printers: ensured printer '${p.name}'"
-      changed=1
     else
       echo "ensure-printers: printer '${p.name}' unreachable (${p.deviceUri}); will retry later" >&2
+      allSucceeded=0
     fi
   '';
 
   ensurePrintersScript = ''
-    changed=0
+    allSucceeded=1
     ${lib.concatMapStringsSep "\n" ensurePrinterTolerant printers}
     ${lib.optionalString (config.hardware.printers.ensureDefaultPrinter != null) ''
       if ${pkgs.cups}/bin/lpadmin -d '${config.hardware.printers.ensureDefaultPrinter}'; then
-        changed=1
+        :
+      else
+        allSucceeded=0
       fi
     ''}
-    ${lib.optionalString (config.services.printing.startWhenNeeded && !config.services.printing.stateless) ''
-      if [ "$changed" = 1 ]; then
+    if [ "$allSucceeded" = 1 ]; then
+      # 打印机已经配置成功；本定时器只负责开机后的失败重试。
+      systemctl stop ensure-printers.timer || true
+      ${lib.optionalString (config.services.printing.startWhenNeeded && !config.services.printing.stateless) ''
         systemctl stop cups.service || true
-      fi
-    ''}
+      ''}
+    fi
     exit 0
   '';
 in
@@ -69,7 +73,8 @@ in
   # `nh os test/switch` 的激活以非零退出（exit 4）判为失败。
   #
   # 这里覆盖 ExecStart 为容错版本：连不上远端时记日志但退出 0，激活不再失败；
-  # 再由 timer 每 30 分钟重试，直到远端可连。
+  # 由 timer 定期重试，直到所有打印机都配置成功；成功后停止 timer，
+  # 避免重复执行 `lpadmin -m everywhere` 重写 PPD、覆盖手工设置。
   systemd.services.ensure-printers = {
     script = lib.mkForce ensurePrintersScript;
     # 关闭 RemainAfterExit，timer 才能每次都真正重新执行 ExecStart。
