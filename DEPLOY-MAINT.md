@@ -1,11 +1,9 @@
 # 已装机器：日常维护
-
-命令以员工机 `msi-wd` 为例，换机器把 `msi-wd` 换成对应 `<HOST>` 即可。
-
+命令以员工机 `msi-wd` 为例
 
 ## 2. 一页速查
 
-| 想干什么 | 谁 | 命令 |
+| 目标 | 谁 | 命令 |
 |---|---|---|
 | 更新系统 | 管理员 | `nh os switch -H msi-wd` |
 | 只构建 / 只打印 | 管理员 | `nh os build` / `nh os switch -H msi-wd -n` |
@@ -19,56 +17,39 @@
 
 - `nh os switch` 按**本机运行中的 hostname** 补属性名；不是 `msi-wd` 时报
   `does not provide attribute 'nixosConfigurations.<本机 hostname>'` → 用 `-H msi-wd` 显式指定。
-- `nh` 前**不要**加 sudo（会被拒绝 `Don't run nh os as root`）；`nh` 自己提权。
 - `nh home switch` 按 `$USER@$(hostname)` 选，找不到退到 `$USER`；显式用 `-c <user>@<host>`。
 - `-s` / `-S` 是"选哪份配置"（specialisation），员工机没有变体、**用不到**；便携盘见 §7。
 
 ## 4. 仓库与同步（`/etc/nixos`）
 
-root 所有的 git 工作树。**纪律：改动只在作者机做，这里只 pull、不手改**；新文件要
-`sudo git -C /etc/nixos add -A` 才对 flake 可见。
-
 ```bash
-# 方式 A（需网络）：root 没有 GitHub 密钥，直接用 https
+# 直接即可
+git pull
+# 方式 A（网络）：root 没有 GitHub 密钥，直接用 https
 sudo git -C /etc/nixos pull --ff-only https://github.com/cmlong05/nixos-config.git main
-
 # 方式 B（没网络）：从作者的移动盘取
 sudo git -C /etc/nixos fetch /run/media/<你>/<卷标>/nixos-config main
 sudo git -C /etc/nixos merge --ff-only FETCH_HEAD
 ```
 
-⚠️ **不要 `git checkout -- .` / `reset --hard`**：会连本机 `disk.nix`、`hardware-configuration.nix`
-一起还原成占位值（重启可能挂不上盘）。这两处是装机时按本机硬件改的，属正常现象；pull 被它们挡住时：
-
-```bash
-sudo cp -a /etc/nixos/os-disk/msi-wd/disk.nix /tmp/d.bak            # 留底
-sudo cp -a /etc/nixos/machines/employee-3600/hardware-configuration.nix /tmp/h.bak
-sudo git -C /etc/nixos stash push -- os-disk/msi-wd/disk.nix machines/employee-3600/hardware-configuration.nix
-sudo git -C /etc/nixos pull --ff-only https://github.com/cmlong05/nixos-config.git main
-sudo cp -a /tmp/d.bak /etc/nixos/os-disk/msi-wd/disk.nix            # 放回本机版本
-sudo cp -a /tmp/h.bak /etc/nixos/machines/employee-3600/hardware-configuration.nix
-sudo git -C /etc/nixos add -A
-```
-
 ## 5. 更新系统
 
-以 `mubimuba` 登录，先按 §4 拉改动，然后：
-
 ```bash
-# 清除并重建为bumooby的登录环境。如果不加”-“，将任然不吃mubimuba的部分登陆环境，导致$XDG_CACHE_HOME任然为mubimuba的
+# 如果是用户 mubimuba 需要清除并重建为bumooby的登录环境，
+# 需加”-“ 以切换 $XDG_CACHE_HOME 到 bumooby 的
 su - bumooby
 nh os switch
 ```
-
 - **改了内核 / NVIDIA 驱动 / initrd** → `sudo reboot`（内核只有 `nix flake update` 后才变）。
 - 只改服务、包、用户 → 一般不用重启。
-- 第一次拉进新 `flake.lock` 要下载不少；缓存源 SJTU 报 HTTP/2 流中断可临时去掉。
 
 ## 6. 用户级（各人自己）
 
 ```bash
-nh home switch            # 每个用户在自己的账号下跑；管理员可代跑 sudo -u <user> -i nh home switch
-nh home build             # 只构建；nh home switch -c mubimuba@msi-wd 显式指定
+# 每个用户在自己的账号下跑；
+nh home switch
+# 管理员可代跑
+sudo -u <user> -i nh home switch
 ```
 
 ## 7. 便携盘 `portable-chen`
@@ -90,7 +71,7 @@ nh home build             # 只构建；nh home switch -c mubimuba@msi-wd 显式
 
 员工机上各自 update 会导致两台机器版本漂移。正确姿势：作者机 `nix flake update` → 构建验证 →
 commit `flake.lock` → push，员工机只 pull。
-升级内核 / NVIDIA 后按 §5 重启。
+升级内核 / NVIDIA 后需重启。
 
 ## 9. 改配置速查
 
