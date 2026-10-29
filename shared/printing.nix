@@ -84,7 +84,7 @@ in
   systemd.timers.ensure-printers = {
     wantedBy = [ "timers.target" ];
     timerConfig = {
-      OnBootSec = "5min";
+      OnBootSec = "2min";
       OnUnitActiveSec = "12min";
     };
   };
