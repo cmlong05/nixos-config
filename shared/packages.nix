@@ -8,12 +8,13 @@
 
 {
   environment.systemPackages = with pkgs; [
-    vim                # root/sudo 改配置、救援 TTY 都要用
-    git                # root 维护仓库也要用
-    python3            # 不少系统工具/脚本依赖它在 PATH
-    wireguard-tools    # wg-quick 需要 root 配置网络
-    wget
     btop
+    git
+    python3
     usbutils
+    vim
+    vlc
+    wireguard-tools
+    wget
   ];
 }
