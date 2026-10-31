@@ -11,7 +11,7 @@
 #                       指向本机变体 → 开机零选择直接进本机
 #   ./auto-machine.nix  运行期：盘插到没 rebuild 过的机器上时，开机后自动切变体
 # 两个都靠 machines/machine-fingerprints.conf 的物理网卡 MAC + scripts/detect-machine.sh 认机器。
-{ ... }:
+{ lib, ... }:
 
 {
   imports = [
@@ -54,4 +54,14 @@
     enable = true;
     port = 59599;
   };
+
+  # Tailscale 只安装不开机启动
+  # 使用：
+  # sudo systemctl start tailscaled
+  # sudo tailscale up
+  # 关闭:
+  # sudo tailscale down
+  # sudo systemctl stop tailscaled
+  services.tailscale.enable = true;
+  systemd.services.tailscaled.wantedBy = lib.mkForce [ ];
 }
