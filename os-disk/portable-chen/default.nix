@@ -32,6 +32,8 @@
     ../../shared/flatpak.nix
     ../../shared/packages.nix
     ../../shared/system-version.nix
+    # 本机 `nh os switch` 自动选择当前硬件的 specialisation
+    ./nh-auto-specialisation.nix
     # 用户名单
     ./users.nix
     # 机器变体（specialisation）

@@ -41,7 +41,7 @@ nixos-config/
 │   └── msi-wd/              # 员工机：default / disk / users
 ├── shared/                  # 机级服务：boot networking ssh remote-desktop nix locale desktop printing flatpak packages
 ├── lib/flatpak-mirror.nix   # flathub 镜像 + 公钥（唯一权威来源）
-└── scripts/                 # detect-machine.sh（认机器）、set-default-entry.sh（写默认启动条目）
+└── scripts/                 # detect-machine.sh（认机器）、nh-local-wrapper.sh、set-default-entry.sh
 ```
 
 **分配**：
@@ -59,7 +59,7 @@ nixos-config/
 ## 4. 常用命令
 
 ```bash
-nh os switch                 # 系统级，按本机 hostname 选；-H msi-wd 显式指定 host
+nh os switch                 # 员工机按本机 hostname；便携盘自动选当前机器 specialisation
 nh os build / nh os info / nh os rollback
 nh home switch               # 用户级，各人自己；-c chen@portable-chen 显式指定；--dry 只打印
 nix flake update             # 升级输入（只在作者机做）；nix flake check 求值校验
@@ -67,7 +67,8 @@ nix flake update             # 升级输入（只在作者机做）；nix flake 
 # 便携盘：换机器零命令（见 §6）
 scripts/detect-machine.sh            # 打印本机变体名；--probes 打印物理网卡 MAC
 scripts/which-spec.sh                # 现在跑在哪个变体里？跑得对不对？（只读，不用 root，见 §6）
-nh os switch -s chen-laptop-intel    # 只切「运行中」的系统到该变体（不重启）
+nh os switch                         # 自动用本机 MAC 选出变体，再切到该配置
+nh os switch -s chen-laptop-intel    # 显式指定变体
 nh os switch -S                      # 保留基础系统（控制台救援入口）
 ```
 

@@ -48,7 +48,8 @@ specialisation.$MACHINE".configuration = {
 ```bash
 # 新机如果无wifi网络驱动，考虑在旧机器上完成构建
 nh os switch
-# 不想重启时，把当前运行系统切过去：
-sudo systemctl restart auto-machine-specialisation
 scripts/which-spec.sh
 ```
+
+便携盘的 `nh` 包装器 (os-disk/portable-chen/nh-auto-specialisation.nix <--scripts/nh-local-wrapper.sh ) 会按刚加入的 MAC 自动选择新机器的 specialisation，
+因此不需要手动追加 `-s <机器名>`；显式传入 `-s`、`-S` 或 `-H` 时包装器不会覆盖。

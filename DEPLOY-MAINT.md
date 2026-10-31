@@ -19,6 +19,8 @@
   `does not provide attribute 'nixosConfigurations.<本机 hostname>'` → 用 `-H msi-wd` 显式指定。
 - `nh home switch` 按 `$USER@$(hostname)` 选，找不到退到 `$USER`；显式用 `-c <user>@<host>`。
 - `-s` / `-S` 是"选哪份配置"（specialisation），员工机没有变体、**用不到**；便携盘见 §7。
+- 便携盘上的 `nh os switch` 会自动按物理网卡 MAC 选出本机变体并补 `-s`；
+  显式 `-s`、`-S`、`-H` 和 `--target-host` 不会被覆盖，其他 nh 子命令保持原样。
 
 ## 4. 仓库与同步（`/etc/nixos`）
 
@@ -59,13 +61,11 @@ sudo -u <user> -i nh home switch
 
 | 命令 | 作用 |
 |---|---|
-| `nh os switch` | 日常就这一条：激活基础系统 + 装 bootloader，并把本机变体写成开机默认条目 |
+| `nh os switch` | 自动选本机变体，激活 + 装 bootloader，并把本机变体写成开机默认条目 |
 | `nh os switch -s <变体>` | 只把运行中的系统切到该变体，不重启 |
 | `nh os switch -S` | 不要变体 → 落在基础系统（控制台救援入口） |
 
-无参数 `nh os switch` 后运行中的是基础系统（没桌面），**重启一次**就进本机变体；不想重启用
-`scripts/detect-machine.sh` 查变体名后 `-s <变体>`，或 `sudo systemctl restart auto-machine-specialisation`。
-原理见 README §6。
+便携盘的 `nh` 包装器 (os-disk/portable-chen/nh-auto-specialisation.nix <--scripts/nh-local-wrapper.sh ) 在 `portable-chen` 上自动执行 `scripts/detect-machine.sh`；确认当前变体可运行 `scripts/which-spec.sh`。认不出机器或 MAC 冲突时包装器会拒绝执行，避免误切基础系统；确实需要控制台救援入口时显式运行 `nh os switch -S`。原理见 README §6。
 
 ## 8. `nix flake update` 只在作者机做
 
