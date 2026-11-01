@@ -11,6 +11,7 @@
     btop
     git
     python3
+    screen
     usbutils
     vim
     vlc
