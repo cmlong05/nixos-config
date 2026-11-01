@@ -4,6 +4,7 @@
 {
   home.packages = with pkgs; [
     li-ri
+    sing-box
     telegram-desktop
   ];
 
