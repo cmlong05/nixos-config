@@ -11,7 +11,14 @@
   };
 
   outputs =
-    inputs@{ nixpkgs, nixpkgs-unstable, nix-flatpak, llm-agents, home-manager, ... }:
+    inputs@{
+      nixpkgs,
+      nixpkgs-unstable,
+      nix-flatpak,
+      llm-agents,
+      home-manager,
+      ...
+    }:
     let
       system = "x86_64-linux";
       pkgs-unstable = import nixpkgs-unstable {

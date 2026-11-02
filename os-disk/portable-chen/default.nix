@@ -57,13 +57,16 @@
     port = 59599;
   };
 
-  # Tailscale 只安装不开机启动
+  services = {
+    tailscale.enable = true;
+    sing-box.enable = true;
+  };
+  # Tailscale 不开机启动
   # 使用：
   # sudo systemctl start tailscaled
   # sudo tailscale up
   # 关闭:
   # sudo tailscale down
   # sudo systemctl stop tailscaled
-  services.tailscale.enable = true;
   systemd.services.tailscaled.wantedBy = lib.mkForce [ ];
 }
