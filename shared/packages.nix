@@ -17,5 +17,6 @@
     vlc
     wireguard-tools
     wget
+    wine
   ];
 }
