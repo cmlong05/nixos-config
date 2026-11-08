@@ -3,6 +3,7 @@
 
 {
   home.packages = with pkgs; [
+    kdePackages.skladnik
     li-ri
     telegram-desktop
   ];
